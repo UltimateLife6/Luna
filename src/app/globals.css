@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --color-obsidian: #100e12;
+  --color-oxblood: #33141f;
+  --color-burgundy: #71304b;
+  --color-silver: #a59aaa;
+  --color-ivory: #eee4db;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-cinzel), ui-serif, georgia, serif;
+  --font-editorial: var(--font-cormorant), "Iowan Old Style", georgia, serif;
+}
+
+@utility eyebrow {
+  font-family: var(--font-display), ui-serif, georgia, serif;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-silver);
+}
+
+@layer base {
+  html {
+    background-color: var(--color-obsidian);
+    color-scheme: dark;
+    scrollbar-color: var(--color-burgundy) var(--color-obsidian);
+  }
+
+  body {
+    background-color: var(--color-obsidian);
+    color: var(--color-ivory);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--color-burgundy);
+    color: var(--color-ivory);
+  }
+
+  :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-ivory);
+    outline-offset: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
