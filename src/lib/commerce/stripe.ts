@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { CommerceError } from "@/lib/commerce/errors";
+import type { PaymentObservation } from "@/lib/commerce/reconciliation";
 
 export function verifyWebhook(payload: string, signature: string, secret: string): Stripe.Event {
   return Stripe.webhooks.constructEvent(payload, signature, secret);
@@ -33,6 +34,19 @@ export async function readCheckoutSession(secretKey: string, sessionId: string):
   return { status: checkoutSessionStatus(session.status), url: session.url ?? null };
 }
 
+export async function readCheckoutPayment(secretKey: string, sessionId: string): Promise<PaymentObservation> {
+  assertTestKey(secretKey);
+  const stripe = new Stripe(secretKey);
+  const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ["payment_intent"] });
+  const paymentIntent = session.payment_intent;
+
+  return {
+    sessionStatus: checkoutSessionStatus(session.status),
+    paymentStatus: checkoutPaymentStatus(session.payment_status),
+    paymentIntentStatus: intentStatus(typeof paymentIntent === "object" && paymentIntent ? paymentIntent.status : null),
+  };
+}
+
 export async function expireOpenCheckoutSession(secretKey: string, sessionId: string): Promise<void> {
   assertTestKey(secretKey);
   const stripe = new Stripe(secretKey);
@@ -41,6 +55,30 @@ export async function expireOpenCheckoutSession(secretKey: string, sessionId: st
   if (session.status === "open") {
     await stripe.checkout.sessions.expire(sessionId);
   }
+}
+
+function checkoutPaymentStatus(value: string | null | undefined): PaymentObservation["paymentStatus"] {
+  if (value === "paid" || value === "unpaid" || value === "no_payment_required") {
+    return value;
+  }
+
+  return "unknown";
+}
+
+function intentStatus(value: string | null | undefined): PaymentObservation["paymentIntentStatus"] {
+  if (
+    value === "succeeded" ||
+    value === "processing" ||
+    value === "requires_action" ||
+    value === "requires_confirmation" ||
+    value === "requires_capture" ||
+    value === "requires_payment_method" ||
+    value === "canceled"
+  ) {
+    return value;
+  }
+
+  return value ? "unknown" : null;
 }
 
 function checkoutSessionStatus(value: string | null | undefined): CheckoutSessionView["status"] {

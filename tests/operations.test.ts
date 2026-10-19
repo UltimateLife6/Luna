@@ -379,6 +379,7 @@ function orderFixture(payment: StoredOrder["paymentStatus"], email: string): Sto
     updatedAt: now.toISOString(),
     expiresAt: now.toISOString(),
     paidAt: null,
+    needsReview: false,
     lines: [],
   };
 }

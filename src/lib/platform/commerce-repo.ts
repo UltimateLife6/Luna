@@ -3,12 +3,17 @@ import type { CustomizationGroup, ProductStatus, PurchaseMode } from "@/lib/cata
 import {
   checkoutClosedHoldDetail,
   checkoutExpiresAt,
+  countedReservationPredicate,
   expiredPendingOrdersStatement,
   latePaymentRecoveredDetail,
   latePaymentShortageDetail,
+  manualReviewDetail,
+  manualReviewHoldUntil,
   reservationCountedUntil,
   sessionPaymentGraceMs,
+  unresolvedCheckoutStatement,
 } from "@/lib/commerce/config";
+import { countsAsReconciliationFailure, reconciliationAttemptLimit, reconciliationFailureDetails, type ReservationCandidate } from "@/lib/commerce/reconciliation";
 import { CommerceError } from "@/lib/commerce/errors";
 import type { WebhookCommand } from "@/lib/commerce/events";
 import { lineProblems, reservedQuantity, transitionFulfillment, transitionPayment, type FulfillmentStatus, type LineOffer, type PaymentStatus } from "@/lib/commerce/policy";
@@ -376,11 +381,90 @@ export async function abortPendingOrder(sql: Sql, orderId: string, now: Date): P
   });
 }
 
+export async function listReservationCandidates(sql: Sql, now: Date): Promise<ReservationCandidate[]> {
+  const rows = await sql.query<{ id: string; stripe_session_id: string; failures: unknown; last_attempt: string | null }>(
+    `SELECT o.id, o.stripe_session_id,
+            (SELECT COUNT(*) FROM order_events e WHERE e.order_id = o.id AND e.kind = 'reconciliation' AND e.detail IN (?, ?)) AS failures,
+            (SELECT MAX(created_at) FROM order_events e WHERE e.order_id = o.id AND e.kind = 'reconciliation') AS last_attempt
+     FROM orders o
+     WHERE o.payment_status = 'pending'
+       AND o.stripe_session_id IS NOT NULL
+       AND o.expires_at <= ?
+       AND NOT EXISTS (
+         SELECT 1 FROM order_events review
+         WHERE review.order_id = o.id AND review.kind = 'reconciliation' AND review.detail = ?
+       )`,
+    [...reconciliationFailureDetails, now.toISOString(), manualReviewDetail],
+  );
+
+  return rows.map((row) => ({
+    orderId: String(row.id),
+    sessionId: String(row.stripe_session_id),
+    failures: integer(row.failures),
+    lastAttemptAt: row.last_attempt ? String(row.last_attempt) : null,
+  }));
+}
+
+export async function applyReservationDecision(
+  sql: Sql,
+  orderId: string,
+  action: "release" | "hold",
+  detail: string,
+  now: Date,
+): Promise<"released" | "held" | "skipped"> {
+  return sql.transaction(async (tx) => {
+    const row = await one<{ payment_status: string }>(tx, "SELECT payment_status FROM orders WHERE id = ? FOR UPDATE", [orderId]);
+
+    if (!row || row.payment_status !== "pending") {
+      return "skipped";
+    }
+
+    if (action === "release") {
+      const canceled = await tx.execute(
+        "UPDATE orders SET payment_status = 'canceled', fulfillment_status = 'canceled', updated_at = ? WHERE id = ? AND payment_status = 'pending'",
+        [now.toISOString(), orderId],
+      );
+
+      if (canceled.changes !== 1) {
+        return "skipped";
+      }
+
+      await tx.execute("UPDATE inventory_reservations SET status = 'released' WHERE order_id = ? AND status = 'reserved'", [orderId]);
+    }
+
+    if (detail === manualReviewDetail) {
+      await rememberManualReview(tx, orderId, now);
+      return "held";
+    }
+
+    await tx.execute("INSERT INTO order_events (id, order_id, kind, detail, created_at) VALUES (?, ?, 'reconciliation', ?, ?)", [
+      randomUUID(),
+      orderId,
+      detail,
+      now.toISOString(),
+    ]);
+
+    if (countsAsReconciliationFailure(detail)) {
+      const failures = await one<{ count: unknown }>(
+        tx,
+        "SELECT COUNT(*) AS count FROM order_events WHERE order_id = ? AND kind = 'reconciliation' AND detail IN (?, ?)",
+        [orderId, ...reconciliationFailureDetails],
+      );
+
+      if (integer(failures?.count ?? 0) >= reconciliationAttemptLimit) {
+        await rememberManualReview(tx, orderId, now);
+      }
+    }
+
+    return action === "release" ? "released" : "held";
+  });
+}
+
 export async function releaseExpiredReservations(sql: Sql, now: Date): Promise<void> {
   await sql.transaction(async (tx) => {
     const stamp = now.toISOString();
     const grace = new Date(now.getTime() - sessionPaymentGraceMs).toISOString();
-    const expired = await tx.query<{ id: string }>(expiredPendingOrdersStatement(), [stamp, grace]);
+    const expired = await tx.query<{ id: string }>(expiredPendingOrdersStatement(), [stamp]);
 
     for (const order of expired) {
       await tx.execute("UPDATE inventory_reservations SET status = 'released' WHERE order_id = ? AND status = 'reserved'", [order.id]);
@@ -389,7 +473,30 @@ export async function releaseExpiredReservations(sql: Sql, now: Date): Promise<v
         order.id,
       ]);
     }
+
+    const unresolved = await tx.query<{ id: string }>(unresolvedCheckoutStatement(), [grace, manualReviewDetail]);
+
+    for (const order of unresolved) {
+      await rememberManualReview(tx, order.id, now);
+    }
   });
+}
+
+async function rememberManualReview(sql: Sql, orderId: string, now: Date): Promise<void> {
+  await sql.execute("UPDATE inventory_reservations SET expires_at = ? WHERE order_id = ? AND status = 'reserved'", [manualReviewHoldUntil, orderId]);
+  const existing = await one<{ id: string }>(sql, "SELECT id FROM order_events WHERE order_id = ? AND kind = 'reconciliation' AND detail = ?", [
+    orderId,
+    manualReviewDetail,
+  ]);
+
+  if (!existing) {
+    await sql.execute("INSERT INTO order_events (id, order_id, kind, detail, created_at) VALUES (?, ?, 'reconciliation', ?, ?)", [
+      randomUUID(),
+      orderId,
+      manualReviewDetail,
+      now.toISOString(),
+    ]);
+  }
 }
 
 export async function applyWebhookCommand(sql: Sql, command: WebhookCommand, now: Date): Promise<{ duplicate: boolean }> {
@@ -483,8 +590,17 @@ export async function getOrder(sql: Sql, id: string): Promise<StoredOrder | null
     updatedAt: String(row.updated_at),
     expiresAt: String(row.expires_at),
     paidAt: row.paid_at ? String(row.paid_at) : null,
+    needsReview: String(row.payment_status) === "pending" && Boolean(await orderNeedsReview(sql, id)),
     lines: lines.map(readOrderLine),
   };
+}
+
+async function orderNeedsReview(sql: Sql, orderId: string): Promise<boolean> {
+  const row = await one<{ id: string }>(sql, "SELECT id FROM order_events WHERE order_id = ? AND kind = 'reconciliation' AND detail = ?", [
+    orderId,
+    manualReviewDetail,
+  ]);
+  return Boolean(row);
 }
 
 export async function updateFulfillment(sql: Sql, orderId: string, next: FulfillmentStatus, now: Date): Promise<void> {
@@ -506,7 +622,7 @@ export async function updateFulfillment(sql: Sql, orderId: string, next: Fulfill
 async function markPaid(sql: Sql, command: Extract<WebhookCommand, { kind: "paid" }>, now: Date): Promise<void> {
   const row = await one<{ id: string; payment_status: PaymentStatus; subtotal_minor: unknown; offered_shipping_json: string }>(
     sql,
-    "SELECT id, payment_status, subtotal_minor, offered_shipping_json FROM orders WHERE stripe_session_id = ?",
+    "SELECT id, payment_status, subtotal_minor, offered_shipping_json FROM orders WHERE stripe_session_id = ? FOR UPDATE",
     [command.sessionId],
   );
 
@@ -782,7 +898,7 @@ async function decorate(sql: Sql, row: OfferRow, now: Date, lock: boolean): Prom
 
   const held = await one<{ held: unknown }>(
     sql,
-    "SELECT COALESCE(SUM(quantity), 0) AS held FROM inventory_reservations WHERE variant_id = ? AND status = 'reserved' AND expires_at > ?",
+    `SELECT COALESCE(SUM(quantity), 0) AS held FROM inventory_reservations WHERE variant_id = ? AND ${countedReservationPredicate()}`,
     [row.variant_id, now.toISOString()],
   );
 

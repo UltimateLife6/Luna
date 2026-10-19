@@ -1,9 +1,9 @@
 import { connection } from "next/server";
-import { readWebhookSecret } from "@/lib/commerce/config";
+import { readStripeSecret, readWebhookSecret } from "@/lib/commerce/config";
 import { CommerceError } from "@/lib/commerce/errors";
 import { commandFromStripeEvent } from "@/lib/commerce/events";
-import { verifyWebhook } from "@/lib/commerce/stripe";
-import { applyWebhookCommand, releaseExpiredReservations } from "@/lib/data/records";
+import { readCheckoutPayment, verifyWebhook } from "@/lib/commerce/stripe";
+import { applyWebhookCommand, reconcileCheckoutReservations, releaseExpiredReservations } from "@/lib/data/records";
 import { assertStripeTestConfiguration } from "@/lib/platform/env";
 import { logError } from "@/lib/platform/log";
 
@@ -50,6 +50,18 @@ export async function POST(request: Request) {
 
       if (command) {
         await applyWebhookCommand(command, now);
+      }
+
+      if (command?.kind === "expired") {
+        const secretKey = readStripeSecret();
+
+        if (secretKey) {
+          try {
+            await reconcileCheckoutReservations(now, (sessionId) => readCheckoutPayment(secretKey, sessionId));
+          } catch (error) {
+            logError("reservation-reconcile", error);
+          }
+        }
       }
     }
   } catch (error) {

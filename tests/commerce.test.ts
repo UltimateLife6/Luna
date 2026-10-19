@@ -8,19 +8,22 @@ import type { DatabaseSync } from "node:sqlite";
 import { openCatalogDatabase } from "@/lib/catalog-store/db";
 import { listCategories, saveCatalogProduct } from "@/lib/catalog-store/products";
 import type { ProductInput } from "@/lib/catalog-store/types";
-import { checkoutBlockers, checkoutExpiresAt, holdMs, sessionPaymentGraceMs, stripeCheckoutMaxMs, stripeCheckoutMinMs } from "@/lib/commerce/config";
+import { checkoutBlockers, checkoutExpiresAt, holdMs, manualReviewDetail, sessionPaymentGraceMs, stripeCheckoutMaxMs, stripeCheckoutMinMs } from "@/lib/commerce/config";
 import { CommerceError } from "@/lib/commerce/errors";
 import { commandFromStripeEvent, type WebhookCommand } from "@/lib/commerce/events";
 import { lineProblems, transitionFulfillment, transitionPayment } from "@/lib/commerce/policy";
 import { lineTotalMinor } from "@/lib/commerce/pricing";
 import { buildCheckoutSessionParams } from "@/lib/commerce/session";
 import { verifyWebhook } from "@/lib/commerce/stripe";
+import { reconcileReservations, reconciliationAttemptLimit, reconciliationRetryMs, reservationDecision, reviewCheckoutReservation, type PaymentObservation, type ReservationBook } from "@/lib/commerce/reconciliation";
 import {
   addCartItem,
+  applyReservationDecision,
   applyWebhookCommand,
   attachStripeSession,
   createCart,
   getOrder,
+  listReservationCandidates,
   orderForSession,
   placePendingOrder,
   readCart,
@@ -304,27 +307,32 @@ describe("commerce checkout", () => {
     });
   });
 
-  it("records a verified payment after the grace releases the hold without driving inventory negative", () => {
+  it("keeps an unresolved Checkout reservation reserved after 72 hours and still records a late payment", () => {
     withDatabase((database) => {
       const { variantId } = sell(database, { inventoryCount: 1, priceMinor: 10000 });
       const cartId = createCart(database, now);
+      const otherCart = createCart(database, now);
       addCartItem(database, cartId, variantId, 1, [], now);
+      addCartItem(database, otherCart, variantId, 1, [], now);
       rate(database);
       const pending = placePendingOrder(database, cartId, now);
       attachStripeSession(database, pending.orderId, "cs_late");
       database.prepare("UPDATE orders SET expires_at = ? WHERE id = ?").run(new Date(now.getTime() - sessionPaymentGraceMs - 60_000).toISOString(), pending.orderId);
+      database.prepare("UPDATE inventory_reservations SET expires_at = ? WHERE order_id = ?").run("2020-01-01T00:00:00.000Z", pending.orderId);
+      assert.throws(() => placePendingOrder(database, otherCart, now), CommerceError);
       releaseExpiredReservations(database, now);
-      database.prepare("UPDATE variants SET inventory_count = 0 WHERE id = ?").run(variantId);
+      releaseExpiredReservations(database, now);
 
-      assert.equal(getOrder(database, pending.orderId)?.paymentStatus, "canceled");
+      const held = getOrder(database, pending.orderId);
+      const reviews = database.prepare("SELECT id FROM order_events WHERE order_id = ? AND detail = ?").all(pending.orderId, manualReviewDetail) as { id: string }[];
+      assert.equal(held?.paymentStatus, "pending");
+      assert.equal(held?.needsReview, true);
+      assert.equal(reviews.length, 1);
+      assert.throws(() => placePendingOrder(database, otherCart, now), CommerceError);
       applyWebhookCommand(database, paidCommand("cs_late", pending.subtotalMinor), now);
-      const recovered = getOrder(database, pending.orderId);
-      const event = database.prepare("SELECT detail FROM order_events WHERE order_id = ?").get(pending.orderId) as { detail: string };
 
-      assert.equal(recovered?.paymentStatus, "paid");
-      assert.equal(recovered?.fulfillmentStatus, "unfulfilled");
+      assert.equal(getOrder(database, pending.orderId)?.paymentStatus, "paid");
       assert.equal(inventory(database, variantId), 0);
-      assert.match(event.detail, /could not be deducted/);
     });
   });
 
@@ -443,3 +451,168 @@ describe("commerce checkout", () => {
     assert.throws(() => verifyWebhook(payload, header, "whsec_wrong_secret"));
   });
 });
+
+describe("reservation reconciliation", () => {
+  const abandoned: PaymentObservation = { sessionStatus: "expired", paymentStatus: "unpaid", paymentIntentStatus: null };
+  const later = new Date(now.getTime() + 32 * 60 * 1000);
+
+  it("releases only when Stripe shows payment cannot complete", () => {
+    assert.equal(reservationDecision({ sessionStatus: "open", paymentStatus: "unpaid", paymentIntentStatus: null }).action, "hold");
+    assert.equal(reservationDecision(abandoned).action, "release");
+    assert.equal(reservationDecision({ sessionStatus: "expired", paymentStatus: "paid", paymentIntentStatus: "succeeded" }).reason, "paid");
+    assert.equal(reservationDecision({ sessionStatus: "complete", paymentStatus: "paid", paymentIntentStatus: "succeeded" }).action, "hold");
+    assert.equal(reservationDecision({ sessionStatus: "complete", paymentStatus: "unpaid", paymentIntentStatus: "processing" }).reason, "processing");
+    assert.equal(reservationDecision({ sessionStatus: "complete", paymentStatus: "unpaid", paymentIntentStatus: "requires_action" }).action, "hold");
+    assert.equal(reservationDecision({ sessionStatus: "complete", paymentStatus: "unpaid", paymentIntentStatus: "canceled" }).reason, "canceled");
+    assert.equal(reservationDecision({ sessionStatus: "unknown", paymentStatus: "unpaid", paymentIntentStatus: null }).reason, "uncertain");
+  });
+
+  it("keeps an open or failed Stripe read reserved and releases an expired unpaid session", async () => {
+    await withDatabaseAsync(async (database) => {
+      const held = checkout(database);
+      const open = await reconcileReservations(reservationBook(database), later, async () => ({ sessionStatus: "open", paymentStatus: "unpaid", paymentIntentStatus: null }));
+      assert.equal(open.held, 1);
+      assert.throws(() => placePendingOrder(database, held.otherCart, later), CommerceError);
+
+      const failed = await reconcileReservations(reservationBook(database), new Date(later.getTime() + reconciliationRetryMs), async () => {
+        throw new Error("stripe unavailable");
+      });
+      assert.equal(failed.held, 1);
+      assert.equal(getOrder(database, held.pending.orderId)?.paymentStatus, "pending");
+      const repeated = await reconcileReservations(reservationBook(database), new Date(later.getTime() + reconciliationRetryMs), async () => abandoned);
+      assert.equal(repeated.deferred, 1);
+      assert.equal(repeated.checked, 0);
+
+      let calls = 0;
+      let cursor = later.getTime() + reconciliationRetryMs;
+      for (let attempt = 1; attempt < reconciliationAttemptLimit; attempt += 1) {
+        cursor += reconciliationRetryMs;
+        await reconcileReservations(reservationBook(database), new Date(cursor), async () => {
+          calls += 1;
+          throw new Error("stripe unavailable");
+        });
+      }
+      const stopped = await reconcileReservations(reservationBook(database), new Date(cursor + reconciliationRetryMs), async () => {
+        calls += 1;
+        return abandoned;
+      });
+      assert.equal(calls, reconciliationAttemptLimit - 1);
+      assert.equal(stopped.checked, 0);
+      assert.equal(getOrder(database, held.pending.orderId)?.paymentStatus, "pending");
+      assert.equal(getOrder(database, held.pending.orderId)?.needsReview, true);
+      releaseExpiredReservations(database, new Date(now.getTime() + holdMs + sessionPaymentGraceMs + 1000));
+      assert.equal(getOrder(database, held.pending.orderId)?.paymentStatus, "pending");
+      assert.throws(() => placePendingOrder(database, held.otherCart, new Date(now.getTime() + holdMs + sessionPaymentGraceMs + 1000)), CommerceError);
+    });
+
+    await withDatabaseAsync(async (database) => {
+      const held = checkout(database);
+      const released = await reconcileReservations(reservationBook(database), later, async () => abandoned);
+      assert.equal(released.released, 1);
+      assert.equal(getOrder(database, held.pending.orderId)?.paymentStatus, "canceled");
+      assert.equal(placePendingOrder(database, held.otherCart, later).orderId.length > 0, true);
+    });
+  });
+
+  it("does not release a paid or processing checkout, including when the webhook arrives first", async () => {
+    await withDatabaseAsync(async (database) => {
+      const processing = checkout(database);
+      const held = await reconcileReservations(reservationBook(database), later, async () => ({
+        sessionStatus: "complete",
+        paymentStatus: "unpaid",
+        paymentIntentStatus: "processing",
+      }));
+      assert.equal(held.held, 1);
+      assert.throws(() => placePendingOrder(database, processing.otherCart, later), CommerceError);
+      applyWebhookCommand(database, { ...paidCommand("cs_reconcile", processing.pending.subtotalMinor), eventId: "evt_processing_paid" }, later);
+      const afterPay = applyReservationDecision(database, processing.pending.orderId, "release", "release:expired", later);
+      assert.equal(afterPay, "skipped");
+      assert.equal(getOrder(database, processing.pending.orderId)?.paymentStatus, "paid");
+      assert.equal(inventory(database, processing.variantId), 0);
+    });
+
+    await withDatabaseAsync(async (database) => {
+      const released = checkout(database);
+      await reconcileReservations(reservationBook(database), later, async () => abandoned);
+      database.prepare("UPDATE variants SET inventory_count = 0 WHERE id = ?").run(released.variantId);
+      applyWebhookCommand(database, { ...paidCommand("cs_reconcile", released.pending.subtotalMinor), eventId: "evt_after_release_short" }, later);
+      const detail = database.prepare("SELECT detail FROM order_events WHERE order_id = ? AND kind = 'payment'").get(released.pending.orderId) as { detail: string };
+      assert.equal(getOrder(database, released.pending.orderId)?.paymentStatus, "paid");
+      assert.equal(inventory(database, released.variantId), 0);
+      assert.match(detail.detail, /could not be deducted/);
+    });
+
+    await withDatabaseAsync(async (database) => {
+      const released = checkout(database);
+      await reconcileReservations(reservationBook(database), later, async () => abandoned);
+      applyWebhookCommand(database, { ...paidCommand("cs_reconcile", released.pending.subtotalMinor), eventId: "evt_after_release_stock" }, later);
+      assert.equal(getOrder(database, released.pending.orderId)?.paymentStatus, "paid");
+      assert.equal(inventory(database, released.variantId), 0);
+    });
+
+    await withDatabaseAsync(async (database) => {
+      const reviewed = checkout(database);
+      const uncertain = await reviewCheckoutReservation(
+        { orderId: reviewed.pending.orderId, sessionId: "cs_reconcile", paymentStatus: "pending" },
+        later,
+        async () => ({ sessionStatus: "unknown", paymentStatus: "unknown", paymentIntentStatus: "unknown" }),
+        reservationBook(database).apply,
+      );
+      assert.equal(uncertain.outcome, "held");
+      assert.equal(getOrder(database, reviewed.pending.orderId)?.needsReview, true);
+      assert.throws(() => placePendingOrder(database, reviewed.otherCart, later), CommerceError);
+
+      applyWebhookCommand(database, { ...paidCommand("cs_reconcile", reviewed.pending.subtotalMinor), eventId: "evt_review_paid" }, later);
+      const raced = await reviewCheckoutReservation(
+        { orderId: reviewed.pending.orderId, sessionId: "cs_reconcile", paymentStatus: "pending" },
+        later,
+        async () => abandoned,
+        reservationBook(database).apply,
+      );
+      assert.equal(raced.outcome, "skipped");
+      assert.equal(getOrder(database, reviewed.pending.orderId)?.paymentStatus, "paid");
+      assert.equal(inventory(database, reviewed.variantId), 0);
+    });
+
+    await withDatabaseAsync(async (database) => {
+      const reviewed = checkout(database);
+      const released = await reviewCheckoutReservation(
+        { orderId: reviewed.pending.orderId, sessionId: "cs_reconcile", paymentStatus: "pending" },
+        later,
+        async () => abandoned,
+        reservationBook(database).apply,
+      );
+      assert.equal(released.outcome, "released");
+      assert.equal(placePendingOrder(database, reviewed.otherCart, later).orderId.length > 0, true);
+    });
+  });
+});
+
+function reservationBook(database: DatabaseSync): ReservationBook {
+  return {
+    listCandidates: async (at) => listReservationCandidates(database, at),
+    apply: async (orderId, action, detail, at) => applyReservationDecision(database, orderId, action, detail, at),
+  };
+}
+
+function checkout(database: DatabaseSync) {
+  const { variantId } = sell(database, { inventoryCount: 1, priceMinor: 10000 });
+  const cartId = createCart(database, now);
+  const otherCart = createCart(database, now);
+  addCartItem(database, cartId, variantId, 1, [], now);
+  addCartItem(database, otherCart, variantId, 1, [], now);
+  rate(database);
+  const pending = placePendingOrder(database, cartId, now);
+  attachStripeSession(database, pending.orderId, "cs_reconcile");
+  return { variantId, otherCart, pending };
+}
+
+async function withDatabaseAsync(run: (database: DatabaseSync) => Promise<void>): Promise<void> {
+  const database = openCatalogDatabase(":memory:");
+
+  try {
+    await run(database);
+  } finally {
+    database.close();
+  }
+}

@@ -10,7 +10,10 @@ import * as sqliteStore from "@/lib/commerce/store";
 import type { FulfillmentStatus } from "@/lib/commerce/policy";
 import type { CartView, PendingCheckout, ShippingRate, StoredOrder } from "@/lib/commerce/store";
 import type { WebhookCommand } from "@/lib/commerce/events";
-import { allowsSqlite } from "@/lib/platform/env";
+import { readStripeSecret } from "@/lib/commerce/config";
+import { reviewCheckoutReservation, reconcileReservations, type PaymentObservation, type ReconcileSummary, type ReservationBook, type ReviewResult } from "@/lib/commerce/reconciliation";
+import { readCheckoutPayment } from "@/lib/commerce/stripe";
+import { allowsSqlite, assertStripeTestConfiguration } from "@/lib/platform/env";
 import * as pgCatalog from "@/lib/platform/catalog-repo";
 import * as pgCommerce from "@/lib/platform/commerce-repo";
 import { mediaAsset, listMediaRecords } from "@/lib/platform/media-records";
@@ -150,6 +153,56 @@ export async function abortPendingOrder(orderId: string, now: Date): Promise<voi
   }
 
   await pgCommerce.abortPendingOrder(await sql(), orderId, now);
+}
+
+export async function reconcileCheckoutReservations(now: Date, readPayment: (sessionId: string) => Promise<PaymentObservation>): Promise<ReconcileSummary> {
+  return reconcileReservations(await reservationBook(), now, readPayment);
+}
+
+export async function recheckCheckoutReservation(orderId: string, now: Date): Promise<ReviewResult> {
+  const order = await getOrder(orderId);
+
+  if (!order) {
+    return { outcome: "skipped", detail: "missing" };
+  }
+
+  const secretKey = readStripeSecret();
+
+  if (!secretKey) {
+    return { outcome: "unavailable", detail: "hold:api-failure" };
+  }
+
+  assertStripeTestConfiguration(secretKey);
+
+  return reviewCheckoutReservation(
+    { orderId: order.id, sessionId: order.stripeSessionId, paymentStatus: order.paymentStatus },
+    now,
+    (sessionId) => readCheckoutPayment(secretKey, sessionId),
+    async (id, action, detail, at) => {
+      const book = await reservationBook();
+      return book.apply(id, action, detail, at);
+    },
+  );
+}
+
+async function reservationBook(): Promise<ReservationBook> {
+  if (allowsSqlite()) {
+    return {
+      listCandidates: async (at) => sqliteStore.listReservationCandidates(getCatalogDatabase(), at),
+      apply: async (orderId, action, detail, at) => sqliteStore.applyReservationDecision(getCatalogDatabase(), orderId, action, detail, at),
+    };
+  }
+
+  return postgresReservationBook();
+}
+
+async function postgresReservationBook(): Promise<ReservationBook> {
+  const database = await sql();
+
+  return {
+    listCandidates: (at) => pgCommerce.listReservationCandidates(database, at),
+    apply: (orderId, action, detail, at) => pgCommerce.applyReservationDecision(database, orderId, action, detail, at),
+  };
 }
 
 export async function releaseExpiredReservations(now: Date): Promise<void> {

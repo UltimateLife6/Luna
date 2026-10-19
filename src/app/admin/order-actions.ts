@@ -1,10 +1,11 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { adminDenialMessage } from "@/lib/catalog-store/access";
 import { CommerceError } from "@/lib/commerce/errors";
 import { fulfillmentStatuses, type FulfillmentStatus } from "@/lib/commerce/policy";
 import { parseCountryList } from "@/lib/commerce/store";
-import { rotateOrderTracking, saveOrderShipment, saveShippingRate, setShippingRateActive, updateFulfillment } from "@/lib/data/records";
+import { recheckCheckoutReservation, rotateOrderTracking, saveOrderShipment, saveShippingRate, setShippingRateActive, updateFulfillment } from "@/lib/data/records";
 
 export type FormState = { errors: string[]; notice?: string };
 
@@ -104,6 +105,49 @@ export async function rotateTrackingAction(_state: FormState, formData: FormData
   } catch {
     return { errors: ["The tracking link was not rotated."] };
   }
+}
+
+export async function recheckReservationAction(_state: FormState, formData: FormData): Promise<FormState> {
+  const denied = await adminDenialMessage();
+
+  if (denied) {
+    return { errors: [denied] };
+  }
+
+  const orderId = text(formData, "orderId");
+
+  try {
+    const result = await recheckCheckoutReservation(orderId, new Date());
+    revalidatePath("/admin/orders");
+    revalidatePath(`/admin/orders/${orderId}`);
+    return { errors: [], notice: reviewNotice(result.outcome, result.detail) };
+  } catch (error) {
+    return { errors: error instanceof CommerceError ? error.errors : ["Stripe could not be read. The finished piece stays reserved."] };
+  }
+}
+
+function reviewNotice(outcome: string, detail: string): string {
+  if (outcome === "released") {
+    return "Stripe shows this Checkout cannot still be paid. The reservation was released.";
+  }
+
+  if (outcome === "skipped") {
+    return "This order is not a pending Checkout reservation. Inventory was not released.";
+  }
+
+  if (detail === "hold:paid") {
+    return "Stripe shows a paid Checkout. The piece stays reserved until the verified webhook records it.";
+  }
+
+  if (detail === "hold:processing") {
+    return "Stripe shows the payment is still processing. The piece stays reserved.";
+  }
+
+  if (detail === "hold:open") {
+    return "Stripe still shows an open Checkout session. The piece stays reserved.";
+  }
+
+  return "Stripe did not confirm that payment cannot complete. The finished piece stays reserved.";
 }
 
 function text(formData: FormData, key: string): string {

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AdminSectionNav } from "@/components/admin/AdminSectionNav";
 import { FulfillmentForm } from "@/components/admin/FulfillmentForm";
+import { ReservationReviewForm } from "@/components/admin/ReservationReviewForm";
 import { ShipmentForm } from "@/components/admin/ShipmentForm";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { TrackingRotateForm } from "@/components/admin/TrackingRotateForm";
@@ -42,6 +43,7 @@ export default async function AdminOrderPage({ params }: OrderPageProps) {
           <StatusBadge>{order.paymentStatus}</StatusBadge>
           <StatusBadge>{order.fulfillmentStatus}</StatusBadge>
           <StatusBadge>{shipment.trackingNumber ? "shipped" : "not shipped"}</StatusBadge>
+          {order.needsReview ? <StatusBadge>manual review</StatusBadge> : null}
         </p>
         <dl className="mt-10 max-w-2xl space-y-4 text-sm text-ivory">
           <div>
@@ -83,6 +85,7 @@ export default async function AdminOrderPage({ params }: OrderPageProps) {
             </li>
           ))}
         </ul>
+        {order.needsReview ? <ReservationReviewForm orderId={order.id} /> : null}
         <FulfillmentForm orderId={order.id} status={order.fulfillmentStatus} />
         <ShipmentForm orderId={order.id} carrier={shipment.carrier} trackingNumber={shipment.trackingNumber} />
         <TrackingRotateForm orderId={order.id} />

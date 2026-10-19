@@ -4,12 +4,17 @@ import type { CustomizationGroup, ProductStatus, PurchaseMode } from "@/lib/cata
 import {
   checkoutClosedHoldDetail,
   checkoutExpiresAt,
+  countedReservationPredicate,
   expiredPendingOrdersStatement,
   latePaymentRecoveredDetail,
   latePaymentShortageDetail,
+  manualReviewDetail,
+  manualReviewHoldUntil,
   reservationCountedUntil,
   sessionPaymentGraceMs,
+  unresolvedCheckoutStatement,
 } from "@/lib/commerce/config";
+import { countsAsReconciliationFailure, reconciliationAttemptLimit, reconciliationFailureDetails, type ReservationCandidate } from "@/lib/commerce/reconciliation";
 import { CommerceError } from "@/lib/commerce/errors";
 import type { ShippingAddress, WebhookCommand } from "@/lib/commerce/events";
 import {
@@ -101,6 +106,7 @@ export type StoredOrder = {
   updatedAt: string;
   expiresAt: string;
   paidAt: string | null;
+  needsReview: boolean;
   lines: OrderLine[];
 };
 
@@ -471,11 +477,88 @@ export function abortPendingOrder(database: DatabaseSync, orderId: string, now: 
   });
 }
 
+export function listReservationCandidates(database: DatabaseSync, now: Date): ReservationCandidate[] {
+  const rows = database
+    .prepare(
+      `SELECT o.id, o.stripe_session_id,
+              (SELECT COUNT(*) FROM order_events e WHERE e.order_id = o.id AND e.kind = 'reconciliation' AND e.detail IN (?, ?)) AS failures,
+              (SELECT MAX(created_at) FROM order_events e WHERE e.order_id = o.id AND e.kind = 'reconciliation') AS last_attempt
+       FROM orders o
+       WHERE o.payment_status = 'pending'
+         AND o.stripe_session_id IS NOT NULL
+         AND o.expires_at <= ?
+         AND NOT EXISTS (
+           SELECT 1 FROM order_events review
+           WHERE review.order_id = o.id AND review.kind = 'reconciliation' AND review.detail = ?
+         )`,
+    )
+    .all(...reconciliationFailureDetails, now.toISOString(), manualReviewDetail) as unknown as {
+    id: string;
+    stripe_session_id: string;
+    failures: number;
+    last_attempt: string | null;
+  }[];
+
+  return rows.map((row) => ({
+    orderId: row.id,
+    sessionId: row.stripe_session_id,
+    failures: Number(row.failures),
+    lastAttemptAt: row.last_attempt,
+  }));
+}
+
+export function applyReservationDecision(
+  database: DatabaseSync,
+  orderId: string,
+  action: "release" | "hold",
+  detail: string,
+  now: Date,
+): "released" | "held" | "skipped" {
+  return withImmediate(database, () => {
+    const row = database.prepare("SELECT payment_status FROM orders WHERE id = ?").get(orderId) as { payment_status: string } | undefined;
+
+    if (!row || row.payment_status !== "pending") {
+      return "skipped";
+    }
+
+    if (action === "release") {
+      const canceled = database
+        .prepare("UPDATE orders SET payment_status = 'canceled', fulfillment_status = 'canceled', updated_at = ? WHERE id = ? AND payment_status = 'pending'")
+        .run(now.toISOString(), orderId);
+
+      if (canceled.changes !== 1) {
+        return "skipped";
+      }
+
+      database.prepare("UPDATE inventory_reservations SET status = 'released' WHERE order_id = ? AND status = 'reserved'").run(orderId);
+    }
+
+    if (detail === manualReviewDetail) {
+      rememberManualReview(database, orderId, now);
+      return "held";
+    }
+
+    database.prepare("INSERT INTO order_events (id, order_id, kind, detail, created_at) VALUES (?, ?, 'reconciliation', ?, ?)").run(randomUUID(), orderId, detail, now.toISOString());
+
+    if (countsAsReconciliationFailure(detail)) {
+      const failures = database
+        .prepare("SELECT COUNT(*) AS count FROM order_events WHERE order_id = ? AND kind = 'reconciliation' AND detail IN (?, ?)")
+        .get(orderId, ...reconciliationFailureDetails) as { count: number };
+
+      if (Number(failures.count) >= reconciliationAttemptLimit) {
+        rememberManualReview(database, orderId, now);
+      }
+    }
+
+    return action === "release" ? "released" : "held";
+  });
+}
+
 export function releaseExpiredReservations(database: DatabaseSync, now: Date): void {
   withImmediate(database, () => {
     const stamp = now.toISOString();
     const grace = new Date(now.getTime() - sessionPaymentGraceMs).toISOString();
-    const expired = database.prepare(expiredPendingOrdersStatement()).all(stamp, grace) as unknown as { id: string }[];
+    const expired = database.prepare(expiredPendingOrdersStatement()).all(stamp) as unknown as { id: string }[];
 
     for (const order of expired) {
       database.prepare("UPDATE inventory_reservations SET status = 'released' WHERE order_id = ? AND status = 'reserved'").run(order.id);
@@ -485,7 +568,26 @@ export function releaseExpiredReservations(database: DatabaseSync, now: Date): v
         )
         .run(stamp, order.id);
     }
+
+    const unresolved = database.prepare(unresolvedCheckoutStatement()).all(grace, manualReviewDetail) as unknown as { id: string }[];
+
+    for (const order of unresolved) {
+      rememberManualReview(database, order.id, now);
+    }
   });
+}
+
+function rememberManualReview(database: DatabaseSync, orderId: string, now: Date): void {
+  database.prepare("UPDATE inventory_reservations SET expires_at = ? WHERE order_id = ? AND status = 'reserved'").run(manualReviewHoldUntil, orderId);
+  const existing = database
+    .prepare("SELECT id FROM order_events WHERE order_id = ? AND kind = 'reconciliation' AND detail = ?")
+    .get(orderId, manualReviewDetail) as { id: string } | undefined;
+
+  if (!existing) {
+    database
+      .prepare("INSERT INTO order_events (id, order_id, kind, detail, created_at) VALUES (?, ?, 'reconciliation', ?, ?)")
+      .run(randomUUID(), orderId, manualReviewDetail, now.toISOString());
+  }
 }
 
 export function applyWebhookCommand(database: DatabaseSync, command: WebhookCommand, now: Date): { duplicate: boolean } {
@@ -573,8 +675,16 @@ export function getOrder(database: DatabaseSync, id: string): StoredOrder | null
     updatedAt: String(row.updated_at),
     expiresAt: String(row.expires_at),
     paidAt: row.paid_at ? String(row.paid_at) : null,
+    needsReview: row.payment_status === "pending" && orderNeedsReview(database, id),
     lines,
   };
+}
+
+function orderNeedsReview(database: DatabaseSync, orderId: string): boolean {
+  const row = database
+    .prepare("SELECT id FROM order_events WHERE order_id = ? AND kind = 'reconciliation' AND detail = ?")
+    .get(orderId, manualReviewDetail) as { id: string } | undefined;
+  return Boolean(row);
 }
 
 export function updateFulfillment(database: DatabaseSync, orderId: string, next: FulfillmentStatus, now: Date): void {
@@ -882,7 +992,7 @@ function decorate(database: DatabaseSync, row: OfferRow, now: Date): { row: Offe
   const held = database
     .prepare(
       `SELECT COALESCE(SUM(quantity), 0) AS held FROM inventory_reservations
-       WHERE variant_id = ? AND status = 'reserved' AND expires_at > ?`,
+       WHERE variant_id = ? AND ${countedReservationPredicate()}`,
     )
     .get(row.variant_id, now.toISOString()) as { held: number } | undefined;
 

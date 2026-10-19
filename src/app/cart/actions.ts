@@ -129,7 +129,7 @@ export async function checkoutAction(state: FormState, formData: FormData): Prom
 
       if (existing.status === "expired") {
         return {
-          errors: ["Stripe has expired that Checkout session. The finished piece stays reserved until the payment retry window ends."],
+          errors: ["Stripe has expired that Checkout session. The finished piece stays reserved until Stripe shows that payment cannot still complete."],
         };
       }
 

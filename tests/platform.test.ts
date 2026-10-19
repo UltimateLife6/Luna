@@ -11,19 +11,22 @@ import type { WebhookCommand } from "@/lib/commerce/events";
 import { authenticateAdmin, createAdminUser, loginFailureLimit } from "@/lib/platform/accounts";
 import { saveCatalogProduct } from "@/lib/platform/catalog-repo";
 import { isMigratableCatalogSlug } from "@/lib/platform/catalog-filter";
+import { manualReviewDetail, sessionPaymentGraceMs } from "@/lib/commerce/config";
+import { reconcileReservations, reviewCheckoutReservation } from "@/lib/commerce/reconciliation";
 import {
   addCartItem,
+  applyReservationDecision,
   applyWebhookCommand,
   attachStripeSession,
   createCart,
   getOrder,
+  listReservationCandidates,
   placePendingOrder,
   readCart,
   releaseExpiredReservations,
   saveShippingRate,
   variantLockSql,
 } from "@/lib/platform/commerce-repo";
-import { sessionPaymentGraceMs } from "@/lib/commerce/config";
 import { allowsSqlite, appEnv, assertDatabaseUrl, assertStripeTestConfiguration, authConfiguration, mediaBackend } from "@/lib/platform/env";
 import { importSqliteCatalog } from "@/lib/platform/import-sqlite";
 import { redact } from "@/lib/platform/log";
@@ -60,6 +63,13 @@ async function sell(sql: Awaited<ReturnType<typeof database>>, overrides: Partia
   };
   const product = await saveCatalogProduct(sql, input, []);
   return { productId: product.id, variantId: product.variants[0].id };
+}
+
+function reservationBook(sql: Awaited<ReturnType<typeof database>>) {
+  return {
+    listCandidates: (at: Date) => listReservationCandidates(sql, at),
+    apply: (orderId: string, action: "release" | "hold", detail: string, at: Date) => applyReservationDecision(sql, orderId, action, detail, at),
+  };
 }
 
 function paid(sessionId: string, subtotalMinor: number): Extract<WebhookCommand, { kind: "paid" }> {
@@ -163,17 +173,24 @@ describe("hosted postgres commerce", () => {
     const late = await database();
     const lateVariant = await sell(late, { variants: [{ label: "One size", sku: "", currency: "USD", priceMinor: 10000, inventoryCount: 1 }] });
     const lateCart = await createCart(late, now);
+    const lateOther = await createCart(late, now);
     await addCartItem(late, lateCart, lateVariant.variantId, 1, [], now);
+    await addCartItem(late, lateOther, lateVariant.variantId, 1, [], now);
     await saveShippingRate(late, { label: "Test shipping", amountMinor: 800, countries: ["US"] }, now);
     const lateOrder = await placePendingOrder(late, lateCart, now);
     await attachStripeSession(late, lateOrder.orderId, "cs_late");
     await late.execute("UPDATE orders SET expires_at = ? WHERE id = ?", [new Date(now.getTime() - sessionPaymentGraceMs - 60_000).toISOString(), lateOrder.orderId]);
     await releaseExpiredReservations(late, now);
-    await late.execute("UPDATE variants SET inventory_count = 0 WHERE id = ?", [lateVariant.variantId]);
+    const lateHeld = await getOrder(late, lateOrder.orderId);
+    const reviews = await late.query<{ id: string }>("SELECT id FROM order_events WHERE order_id = ? AND detail = ?", [lateOrder.orderId, manualReviewDetail]);
+    assert.equal(lateHeld?.paymentStatus, "pending");
+    assert.equal(lateHeld?.needsReview, true);
+    assert.equal(reviews.length, 1);
+    await assert.rejects(placePendingOrder(late, lateOther, now), CommerceError);
     await applyWebhookCommand(late, { ...paid("cs_late", lateOrder.subtotalMinor), eventId: "evt_cs_late" }, now);
-    const shortage = await late.query<{ detail: string }>("SELECT detail FROM order_events WHERE order_id = ?", [lateOrder.orderId]);
+    const lateInventory = await late.query<{ inventory_count: number }>("SELECT inventory_count FROM variants WHERE id = ?", [lateVariant.variantId]);
     assert.equal((await getOrder(late, lateOrder.orderId))?.paymentStatus, "paid");
-    assert.match(shortage[0]?.detail ?? "", /could not be deducted/);
+    assert.equal(Number(lateInventory[0]?.inventory_count), 0);
   });
 
   it("releases a reservation after the hold expires", async () => {
@@ -236,6 +253,84 @@ describe("hosted postgres commerce", () => {
     await assert.rejects(applyWebhookCommand(sql, taxed, now), CommerceError);
     assert.equal((await getOrder(sql, pending.orderId))?.paymentStatus, "pending");
     assert.equal((await sql.query("SELECT id FROM webhook_events WHERE id = 'evt_tax'")).length, 0);
+  });
+
+  it("reconciles expired, paid, and unavailable Stripe reads without a timer release", async () => {
+    const later = new Date(now.getTime() + 32 * 60 * 1000);
+    const expired = await database();
+    const expiredVariant = await sell(expired, { variants: [{ label: "One size", sku: "", currency: "USD", priceMinor: 10000, inventoryCount: 1 }] });
+    const expiredCart = await createCart(expired, now);
+    const nextCart = await createCart(expired, now);
+    await addCartItem(expired, expiredCart, expiredVariant.variantId, 1, [], now);
+    await addCartItem(expired, nextCart, expiredVariant.variantId, 1, [], now);
+    await saveShippingRate(expired, { label: "Test shipping", amountMinor: 800, countries: ["US"] }, now);
+    const expiredOrder = await placePendingOrder(expired, expiredCart, now);
+    await attachStripeSession(expired, expiredOrder.orderId, "cs_expired_read");
+    await assert.rejects(placePendingOrder(expired, nextCart, later), CommerceError);
+    const released = await reconcileReservations(reservationBook(expired), later, async () => ({
+      sessionStatus: "expired",
+      paymentStatus: "unpaid",
+      paymentIntentStatus: null,
+    }));
+    assert.equal(released.released, 1);
+    assert.equal((await placePendingOrder(expired, nextCart, later)).subtotalMinor, 10000);
+
+    const paidDb = await database();
+    const paidVariant = await sell(paidDb, { variants: [{ label: "One size", sku: "", currency: "USD", priceMinor: 10000, inventoryCount: 1 }] });
+    const paidCart = await createCart(paidDb, now);
+    await addCartItem(paidDb, paidCart, paidVariant.variantId, 1, [], now);
+    await saveShippingRate(paidDb, { label: "Test shipping", amountMinor: 800, countries: ["US"] }, now);
+    const paidOrder = await placePendingOrder(paidDb, paidCart, now);
+    await attachStripeSession(paidDb, paidOrder.orderId, "cs_paid_first");
+    await applyWebhookCommand(paidDb, paid("cs_paid_first", paidOrder.subtotalMinor), later);
+    const skipped = await applyReservationDecision(paidDb, paidOrder.orderId, "release", "release:expired", later);
+    const paidInventory = await paidDb.query<{ inventory_count: number }>("SELECT inventory_count FROM variants WHERE id = ?", [paidVariant.variantId]);
+    assert.equal(skipped, "skipped");
+    assert.equal((await getOrder(paidDb, paidOrder.orderId))?.paymentStatus, "paid");
+    assert.equal(Number(paidInventory[0]?.inventory_count), 0);
+
+    const failed = await database();
+    const failedVariant = await sell(failed, { variants: [{ label: "One size", sku: "", currency: "USD", priceMinor: 10000, inventoryCount: 1 }] });
+    const failedCart = await createCart(failed, now);
+    await addCartItem(failed, failedCart, failedVariant.variantId, 1, [], now);
+    await saveShippingRate(failed, { label: "Test shipping", amountMinor: 800, countries: ["US"] }, now);
+    const failedOrder = await placePendingOrder(failed, failedCart, now);
+    await attachStripeSession(failed, failedOrder.orderId, "cs_api_down");
+    const held = await reconcileReservations(reservationBook(failed), later, async () => {
+      throw new Error("stripe unavailable");
+    });
+    assert.equal(held.held, 1);
+    assert.equal((await getOrder(failed, failedOrder.orderId))?.paymentStatus, "pending");
+
+    const reviewDb = await database();
+    const reviewVariant = await sell(reviewDb, { variants: [{ label: "One size", sku: "", currency: "USD", priceMinor: 10000, inventoryCount: 1 }] });
+    const reviewCart = await createCart(reviewDb, now);
+    await addCartItem(reviewDb, reviewCart, reviewVariant.variantId, 1, [], now);
+    await saveShippingRate(reviewDb, { label: "Test shipping", amountMinor: 800, countries: ["US"] }, now);
+    const reviewOrder = await placePendingOrder(reviewDb, reviewCart, now);
+    await attachStripeSession(reviewDb, reviewOrder.orderId, "cs_review");
+    const book = reservationBook(reviewDb);
+    const uncertain = await reviewCheckoutReservation(
+      { orderId: reviewOrder.orderId, sessionId: "cs_review", paymentStatus: "pending" },
+      later,
+      async () => {
+        throw new Error("stripe unavailable");
+      },
+      book.apply,
+    );
+    assert.equal(uncertain.outcome, "unavailable");
+    assert.equal((await getOrder(reviewDb, reviewOrder.orderId))?.needsReview, true);
+    await applyWebhookCommand(reviewDb, paid("cs_review", reviewOrder.subtotalMinor), later);
+    const raced = await reviewCheckoutReservation(
+      { orderId: reviewOrder.orderId, sessionId: "cs_review", paymentStatus: "pending" },
+      later,
+      async () => ({ sessionStatus: "expired", paymentStatus: "unpaid", paymentIntentStatus: null }),
+      book.apply,
+    );
+    const reviewInventory = await reviewDb.query<{ inventory_count: number }>("SELECT inventory_count FROM variants WHERE id = ?", [reviewVariant.variantId]);
+    assert.equal(raced.outcome, "skipped");
+    assert.equal((await getOrder(reviewDb, reviewOrder.orderId))?.paymentStatus, "paid");
+    assert.equal(Number(reviewInventory[0]?.inventory_count), 0);
   });
 
   it("prices saved customization from the catalog after migration", async () => {

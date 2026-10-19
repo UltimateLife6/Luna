@@ -51,6 +51,11 @@ async function Orders({ searchParams }: OrdersPageProps) {
         <p className="mt-6 max-w-2xl text-sm leading-relaxed text-silver">
           Payment status changes only after a verified Stripe webhook. Fulfillment can be updated here. Refunds and shipping labels are not purchased from this screen.
         </p>
+        {orders.some((order) => order.needsReview) ? (
+          <p className="mt-6 max-w-2xl text-sm leading-relaxed text-ivory">
+            Some Checkout reservations need a manual Stripe recheck. They stay reserved until Stripe shows that payment cannot complete.
+          </p>
+        ) : null}
         <form method="get" className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block text-sm text-ivory">
             Search
@@ -93,6 +98,7 @@ async function Orders({ searchParams }: OrdersPageProps) {
                 <p className="flex flex-wrap gap-2">
                   <StatusBadge>{order.paymentStatus}</StatusBadge>
                   <StatusBadge>{order.fulfillmentStatus}</StatusBadge>
+                  {order.needsReview ? <StatusBadge>manual review</StatusBadge> : null}
                 </p>
                 <h2 className="mt-3 break-words font-editorial text-3xl text-ivory">{order.email || "Email not confirmed"}</h2>
                 <p className="mt-2 text-sm text-silver">
