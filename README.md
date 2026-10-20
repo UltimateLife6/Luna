@@ -107,9 +107,9 @@ Neon keeps point-in-time recovery on its own plan. Take a logical backup with `p
 
 ## Photography
 
-Luna Fae Leathers supplied `IMG_5249.jpeg` through `IMG_5267.jpeg` for this project and knows the site is being developed. Each ledger row is `approved-for-private-preview`. That status is separate from `approved-for-demo`. Public publication, photographer credit, and model permission stay unverified.
+Luna Fae Leathers supplied `IMG_5249.jpeg` through `IMG_5267.jpeg`. On 2026-10-20 the owner confirmed that all 19 may be used on the public website. Each ledger row is `approved-for-public-production`. That status is separate from the catalog-upload status `approved-for-demo`. Photographer credit and model permission are still unverified and need follow-up.
 
-Originals are in `photography/originals`. WebP derivatives are in `photography/derivatives`. Neither directory is under `public`. `next dev` serves a derivative from `/private-preview/` only while `NODE_ENV` is `development`. A production build does not render those paths, and the route returns 404 outside development.
+Originals stay in `photography/originals` and are not published. The optimized WebP files copied for the site are in `public/images`. The private-preview route still returns 404 for anything that is not `approved-for-private-preview`.
 
 The sources are 1024×1024. Derivatives stay 1024×1024. They were not upscaled. WebP quality is 82, with no sharpening and no EXIF on the derivative.
 
@@ -121,10 +121,12 @@ The sources are 1024×1024. Derivatives stay 1024×1024. They were not upscaled.
 | IMG_5258, IMG_5260, IMG_5261 | Homepage gallery preview |
 | IMG_5251 | Custom creations and the custom page |
 | IMG_5265 | Alternate custom photograph, included in the gallery |
+| IMG_5263 | Homepage Crafted by hand |
+| IMG_5253 | About making frame |
 | IMG_5259 | About materials frame |
 | All 19 | Gallery, square, in the ledger order |
 
-The craftsmanship frame and the About making frame stay empty so a portrait is not presented as the maker at work. None of the photographs are attached to the eight fictional shop examples.
+None of the photographs are attached to a published product.
 
 ## Private preview
 

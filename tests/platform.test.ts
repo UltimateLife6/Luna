@@ -27,7 +27,7 @@ import {
   saveShippingRate,
   variantLockSql,
 } from "@/lib/platform/commerce-repo";
-import { displayPath, privatePreviewAllowed } from "@/data/image-assets";
+import { displayPath, imageAssets, privatePreviewAllowed } from "@/data/image-assets";
 import { allowsSqlite, appEnv, assertDatabaseUrl, assertStripeTestConfiguration, authConfiguration, databaseConfigured, mediaBackend } from "@/lib/platform/env";
 import { importSqliteCatalog } from "@/lib/platform/import-sqlite";
 import { redact } from "@/lib/platform/log";
@@ -126,13 +126,17 @@ describe("hosted configuration", () => {
       delete process.env.VERCEL_ENV;
       delete process.env.NEXT_PUBLIC_PREVIEW_PHOTOS;
       assert.equal(privatePreviewAllowed(), false);
-      assert.equal(displayPath("/images/img-5249.webp"), undefined);
+      assert.equal(displayPath("/images/img-5249.webp"), "/images/img-5249.webp");
       process.env.NEXT_PUBLIC_PREVIEW_PHOTOS = "1";
       process.env.VERCEL_ENV = "production";
       assert.equal(privatePreviewAllowed(), false);
-      assert.equal(displayPath("/images/img-5249.webp"), undefined);
+      assert.equal(displayPath("/images/img-5249.webp"), "/images/img-5249.webp");
       process.env.VERCEL_ENV = "preview";
-      assert.equal(displayPath("/images/img-5249.webp"), "/private-preview/img-5249.webp");
+      assert.equal(displayPath("/images/img-5249.webp"), "/images/img-5249.webp");
+      assert.equal(imageAssets.length, 19);
+      assert.ok(imageAssets.every((asset) => asset.approval === "approved-for-public-production" && asset.publicUse?.confirmedOn === "2026-10-20"));
+      assert.ok(imageAssets.every((asset) => asset.creditStatus === "unverified" && asset.modelPermission === "unverified"));
+      assert.ok(imageAssets.every((asset) => displayPath(`/images/${asset.publicFilename}`) === `/images/${asset.publicFilename}`));
     } finally {
       if (previous.vercel === undefined) delete process.env.VERCEL_ENV;
       else process.env.VERCEL_ENV = previous.vercel;

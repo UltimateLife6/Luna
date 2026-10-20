@@ -46,5 +46,6 @@ next-env.d.ts
 /data/*.sqlite-*
 /data/media
 
-# Private-preview photographs stay on this machine. They are not approved for public publication.
+# Working photographs stay on this machine. Originals are not published.
+# The approved WebP copies live in public/images.
 /photography

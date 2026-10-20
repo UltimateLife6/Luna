@@ -1,5 +1,5 @@
 # Used instead of .gitignore for Vercel uploads.
-# Optimized derivatives are included. Originals, secrets, and the local database stay out.
+# Approved WebP copies in public/images are uploaded. Working photographs, secrets, and the local database stay out.
 
 node_modules
 .pnp
@@ -24,4 +24,4 @@ next-env.d.ts
 data/*.sqlite
 data/*.sqlite-*
 data/media
-photography/originals
+photography

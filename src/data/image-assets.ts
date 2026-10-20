@@ -1,10 +1,24 @@
 /**
  * Provenance ledger for photographs supplied for this website.
+ * `approved-for-public-production` may appear on the public website.
  * `approved-for-private-preview` may render in local development and on a protected Vercel preview.
- * `approved-for-demo` is the only status that may be published on production.
+ * `approved-for-demo` remains the catalog-upload status and is separate from these supplied photographs.
  */
 
-export type ImageUsageApproval = "approved-for-demo" | "approved-for-private-preview" | "missing" | "ambiguous" | "withheld";
+export type ImageUsageApproval =
+  | "approved-for-demo"
+  | "approved-for-public-production"
+  | "approved-for-private-preview"
+  | "missing"
+  | "ambiguous"
+  | "withheld";
+
+export type PublicUseConfirmation = {
+  status: "confirmed";
+  confirmedBy: "owner";
+  scope: "public Luna Fae Leathers website";
+  confirmedOn: "2026-10-20";
+};
 
 export type GalleryFilter = "harnesses" | "accessories" | "detail";
 
@@ -15,8 +29,12 @@ export type ImageAsset = {
   source: "luna-fae-leathers";
   suppliedBy: "Luna Fae Leathers";
   approval: ImageUsageApproval;
-  /** Public production stays closed until `approved-for-demo`. */
+  /** Public website use. `approved` means the owner confirmed this file may be published. */
   publicPublication: "unverified" | "approved";
+  /** Owner confirmation for public website use. Absent when that confirmation has not been given. */
+  publicUse?: PublicUseConfirmation;
+  /** Rights notes that remain open after public-use confirmation. */
+  rightsFollowUp?: readonly string[];
   /** Protected preview is separate from public production. */
   previewPublication: "protected-preview" | "closed";
   productOrCollection?: string;
@@ -29,9 +47,9 @@ export type ImageAsset = {
   /** Visual gallery filter. Not a product or collection name. */
   galleryFilter: GalleryFilter;
   placement: string;
-  /** Derivative filename. Private-preview files are not copied into `public/images`. */
+  /** Filename served from `public/images` when public publication is approved. */
   publicFilename?: string;
-  /** WebP kept outside `public`. */
+  /** Local optimized WebP. Originals stay outside `public`. */
   derivativePath: string;
   /** Untouched JPEG kept outside `public`. */
   originalPath: string;
@@ -44,9 +62,18 @@ export type ImageAsset = {
 };
 
 const usage =
-  "Supplied directly by Luna Fae Leathers for this website project. Permitted in local development and on a protected Vercel preview. Public production, photographer credit, and model permission are unverified.";
+  "Supplied directly by Luna Fae Leathers. On 2026-10-20 the owner confirmed that this photograph may be used on the public Luna Fae Leathers website. Photographer credit and model permission remain unverified.";
 
-const release = "A person is pictured. Model permission is unverified.";
+const release = "A person is pictured. Model permission is unverified and needs follow-up.";
+
+const publicUse = {
+  status: "confirmed",
+  confirmedBy: "owner",
+  scope: "public Luna Fae Leathers website",
+  confirmedOn: "2026-10-20",
+} as const;
+
+const rightsFollowUp = ["Photographer credit is unverified.", "Model permission is unverified."] as const;
 
 function suppliedPhoto(
   number: string,
@@ -63,9 +90,11 @@ function suppliedPhoto(
     sourceFilename: `IMG_${number}.jpeg`,
     source: "luna-fae-leathers",
     suppliedBy: "Luna Fae Leathers",
-    approval: "approved-for-private-preview",
-    publicPublication: "unverified",
-    previewPublication: "protected-preview",
+    approval: "approved-for-public-production",
+    publicPublication: "approved",
+    publicUse,
+    rightsFollowUp,
+    previewPublication: "closed",
     creditStatus: "unverified",
     permittedUsage: usage,
     modelRelease: release,
@@ -85,7 +114,7 @@ function suppliedPhoto(
 
 /**
  * All 19 photographs supplied by Luna Fae Leathers.
- * Private-preview permission is not public publication approval.
+ * The owner confirmed public website use. Photographer credit and model permission are still unverified.
  */
 export const imageAssets: ImageAsset[] = [
   suppliedPhoto(
@@ -266,7 +295,7 @@ export const imageSlots = [
   { id: "gallery-preview", placement: "Homepage gallery preview", ratio: "4:3, 3:4, or 4:5", longEdge: 1600, assetId: photoPlacements.galleryPreview.join(", ") },
   { id: "about-making", placement: "About, making frame", ratio: "4:5", longEdge: 1600, assetId: photoPlacements.aboutMaking },
   { id: "about-materials", placement: "About, materials frame", ratio: "4:3", longEdge: 1600, assetId: photoPlacements.aboutMaterials },
-  { id: "gallery", placement: "Gallery", ratio: "1:1 source", longEdge: 2000, assetId: "all private-preview photographs" },
+  { id: "gallery", placement: "Gallery", ratio: "1:1 source", longEdge: 2000, assetId: "all 19 approved public photographs" },
   { id: "product", placement: "Verified product pages only", ratio: "4:5", longEdge: 1600, assetId: "unassigned" },
   { id: "custom", placement: "Custom creations", ratio: "1:1", longEdge: 1600, assetId: photoPlacements.custom },
 ] as const;
@@ -284,11 +313,15 @@ function assetForFilename(src: string | undefined): ImageAsset | undefined {
   return imageAssets.find((item) => item.publicFilename === filename);
 }
 
+function isPublicImage(asset: ImageAsset): boolean {
+  return asset.approval === "approved-for-public-production" || asset.approval === "approved-for-demo";
+}
+
 /** Public files only. Private-preview photographs never use this path. */
 export function approvedPublicPath(src: string | undefined): string | undefined {
   const asset = assetForFilename(src);
 
-  if (!asset?.publicFilename || !asset.alt || asset.approval !== "approved-for-demo") {
+  if (!asset?.publicFilename || !asset.alt || !isPublicImage(asset)) {
     return undefined;
   }
 
@@ -302,9 +335,9 @@ type PreviewEnv = {
 };
 
 /**
- * Supplied photographs stay off public production.
- * Local development and a Vercel preview may render them. A production deployment may not,
- * even if a preview flag was copied into that environment.
+ * Gate for photographs that are still `approved-for-private-preview`.
+ * A production deployment may not render those files, even if a preview flag was copied into that environment.
+ * Photographs approved for public production do not use this gate.
  */
 export function privatePreviewAllowed(source: PreviewEnv = process.env): boolean {
   if (source.VERCEL_ENV === "production") {
@@ -333,7 +366,7 @@ export function displayPath(src: string | undefined): string | undefined {
     return undefined;
   }
 
-  if (asset.approval === "approved-for-demo") {
+  if (isPublicImage(asset)) {
     return `/images/${asset.publicFilename}`;
   }
 
