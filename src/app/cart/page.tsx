@@ -26,7 +26,7 @@ export default async function CartPage() {
       <PageIntro
         eyebrow="Cart"
         title="Items held in this browser."
-        description="Prices are read from the local catalog when the cart is shown and again before checkout. Unpublished, archived, and quote-only records cannot be purchased."
+        description="Prices are confirmed again before checkout."
       />
       <Container className="pb-20">
         {!cart || cart.lines.length === 0 ? (

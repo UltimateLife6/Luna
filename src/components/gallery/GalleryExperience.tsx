@@ -4,12 +4,11 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { DemoImage } from "@/components/ui/DemoImage";
-import { categoryLabel, galleryCategories, galleryFrames, isConceptGallery, type GalleryCategory, type GalleryFrame } from "@/lib/gallery";
+import { categoryLabel, galleryCategories, galleryFrames, type GalleryCategory, type GalleryFrame } from "@/lib/gallery";
 import { cn } from "@/lib/cn";
 
 export function GalleryExperience() {
   const frames = galleryFrames();
-  const concept = isConceptGallery();
   const [category, setCategory] = useState<GalleryCategory>("all");
   const [active, setActive] = useState<number | null>(null);
   const opener = useRef<HTMLElement | null>(null);
@@ -64,16 +63,12 @@ export function GalleryExperience() {
           </div>
           <p id={statusId} className="text-sm text-silver" aria-live="polite">
             {visible.length === 0
-              ? "No frames in this category."
-              : concept
-                ? `Showing ${visible.length} concept ${visible.length === 1 ? "frame" : "frames"}. Not portfolio photographs.`
-                : frames.some((frame) => frame.usage === "private-preview")
-                  ? `Showing ${visible.length} ${visible.length === 1 ? "photograph" : "photographs"} for this private preview. Credit, model permission, and public publication are unverified.`
-                  : `Showing ${visible.length} ${visible.length === 1 ? "record" : "records"}.`}
+              ? "No photographs in this view."
+              : `Showing ${visible.length} ${visible.length === 1 ? "photograph" : "photographs"}.`}
           </p>
         </div>
         {visible.length === 0 ? (
-          <p className="mt-10 max-w-md font-editorial text-3xl text-ivory">This category is empty.</p>
+          <p className="mt-10 max-w-md font-editorial text-3xl text-ivory">Photographs will be placed here.</p>
         ) : (
           <ul className="mt-8 columns-1 gap-4 sm:columns-2 lg:columns-3" aria-describedby={statusId}>
             {visible.map((frame, index) => (
@@ -219,33 +214,13 @@ function Lightbox({
 }
 
 function kickerFor(frame: GalleryFrame): string {
-  if (frame.usage === "private-preview") {
-    return "Private preview";
-  }
-
   if (frame.status === "verified") {
-    return "Verified";
+    return "Confirmed";
   }
 
-  if (frame.status === "demo") {
-    return "Demo record";
-  }
-
-  return "Concept imagery";
+  return "Photograph";
 }
 
 function captionFor(frame: GalleryFrame): string {
-  if (frame.status === "verified") {
-    return frame.alt;
-  }
-
-  if (frame.usage === "private-preview") {
-    return `${frame.alt} Private local preview. The person is not identified as the maker. Photographer credit, model permission, and public publication are unverified. This is not a product for sale.`;
-  }
-
-  if (frame.status === "demo") {
-    return "Demo record. This is not presented as a verified Luna Fae photograph.";
-  }
-
-  return "Illustrative concept frame. Not a photograph of Luna Fae work.";
+  return frame.alt;
 }

@@ -101,13 +101,13 @@ export function categoryLabel(id: GalleryCategory): string {
 }
 
 export function galleryFrames(): GalleryFrame[] {
-  const approved = galleryItems.map(frameFromItem).filter((frame) => frame.src);
-
-  return approved.length > 0 ? approved : conceptGalleryFrames;
+  return galleryItems
+    .map(frameFromItem)
+    .filter((frame) => Boolean(frame.src) && frame.usage !== "private-preview");
 }
 
 export function isConceptGallery(): boolean {
-  return galleryItems.every((item) => !displayPath(item.src));
+  return galleryFrames().length === 0;
 }
 
 function frameFromItem(item: GalleryItem): GalleryFrame {

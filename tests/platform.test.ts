@@ -27,7 +27,7 @@ import {
   saveShippingRate,
   variantLockSql,
 } from "@/lib/platform/commerce-repo";
-import { allowsSqlite, appEnv, assertDatabaseUrl, assertStripeTestConfiguration, authConfiguration, mediaBackend } from "@/lib/platform/env";
+import { allowsSqlite, appEnv, assertDatabaseUrl, assertStripeTestConfiguration, authConfiguration, databaseConfigured, mediaBackend } from "@/lib/platform/env";
 import { importSqliteCatalog } from "@/lib/platform/import-sqlite";
 import { redact } from "@/lib/platform/log";
 import { inspectImage, isPrivatePreviewId, mediaAccessDecision } from "@/lib/platform/media-policy";
@@ -94,6 +94,9 @@ describe("hosted configuration", () => {
     assert.throws(() => appEnv({ APP_ENV: "prod" }), /APP_ENV must be local, staging, or production/);
     assert.equal(allowsSqlite({ APP_ENV: "local" }), true);
     assert.equal(allowsSqlite({ APP_ENV: "production" }), false);
+    assert.equal(databaseConfigured({ APP_ENV: "local" }), true);
+    assert.equal(databaseConfigured({ APP_ENV: "staging" }), false);
+    assert.equal(databaseConfigured({ APP_ENV: "staging", DATABASE_URL: "postgres://example" }), true);
     assert.equal(allowsSqlite({ APP_ENV: "local", DATABASE_URL: "postgres://example" }), false);
     assert.throws(() => assertDatabaseUrl(undefined), /DATABASE_URL is required/);
     assert.throws(() => assertDatabaseUrl("sqlite://catalog.sqlite"), /PostgreSQL connection string/);

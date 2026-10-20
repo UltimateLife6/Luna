@@ -5,9 +5,9 @@ export default function ProductNotFound() {
   return (
     <Section
       eyebrow="Catalog"
-      title="This example is not in the catalog."
+      title="This piece is not listed."
       headingLevel={1}
-      description="The address does not match a concept example. Nothing was removed from a live inventory, because this demo does not sell pieces."
+      description="The address does not match a piece in the shop."
     >
       <Button href="/shop" variant="secondary">
         Back to the shop

@@ -16,10 +16,10 @@ export default async function NewCatalogProductPage() {
   return (
     <article className="py-16 sm:py-24">
       <Container>
-        <p className="eyebrow">Local only</p>
+        <p className="eyebrow">Admin</p>
         <h1 className="mt-4 font-editorial text-[2.5rem] leading-[0.95] text-ivory sm:text-6xl">New record</h1>
         <p className="mt-6 max-w-2xl text-sm leading-relaxed text-silver">
-          Save a draft until the name, price, and inventory are confirmed. Publishing makes the record visible on the local catalog. Checkout also requires the purchase mode to be checkout, a test Stripe key, and a saved shipping rate.
+          Save a draft until the name, price, and inventory are confirmed. Publishing makes the record visible in the catalog. Checkout also requires checkout mode, a Stripe test key, and a saved shipping rate.
         </p>
         <div className="mt-10">
           <MediaTools returnTo="/admin/products/new" uploads={uploads} />

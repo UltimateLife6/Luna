@@ -26,7 +26,7 @@ export function CatalogProductView({
           <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-silver">
             <li>
               <Link href="/catalog" className="inline-flex min-h-11 items-center text-ivory">
-                Local catalog
+                Catalog
               </Link>
             </li>
             <li aria-hidden="true">/</li>
@@ -47,7 +47,7 @@ export function CatalogProductView({
                 <DemoImage
                   src={image.src}
                   alt={image.alt}
-                  kicker={image.src ? "Photograph not published" : "No photograph"}
+                  kicker="Photograph"
                   label={image.label}
                   objectPosition={image.objectPosition}
                   aspectClassName="aspect-[4/5]"
@@ -58,7 +58,7 @@ export function CatalogProductView({
             ))}
           </div>
           <div className="min-w-0 lg:col-span-5">
-            <p className="eyebrow">Local catalog</p>
+            <p className="eyebrow">Catalog</p>
             <h1 className="mt-4 text-balance font-editorial text-[2.5rem] leading-[0.95] text-ivory sm:text-6xl">{product.name}</h1>
             <p className="mt-4 text-sm text-silver">{product.categoryName}</p>
             <p className="mt-6 font-editorial text-4xl text-ivory">{product.priceLabel}</p>
@@ -84,8 +84,8 @@ export function CatalogProductView({
                 <dt className="eyebrow">Purchase</dt>
                 <dd className="mt-2 leading-relaxed text-ivory">
                   {product.purchaseMode === "checkout"
-                    ? "This record can be added to the cart. The estimate updates as you choose saved options. Checkout stays off until Stripe test mode and a shipping rate are configured."
-                    : "This record is quote-only. A request is saved for review and is not charged. No price or production date is set until the maker confirms it."}
+                    ? "This piece can be added to the cart. The total updates from the saved options."
+                    : "This piece is requested rather than charged here. The request is saved for review."}
                 </dd>
               </div>
               {lead ? null : (
@@ -117,7 +117,7 @@ export function CatalogProductView({
             )}
             <div className="mt-8">
               <Button href="/catalog" variant="secondary">
-                Back to the local catalog
+                Back to the catalog
               </Button>
             </div>
           </div>
@@ -126,7 +126,7 @@ export function CatalogProductView({
         <section aria-labelledby="related-catalog-heading" className="mt-20 border-t border-ivory/10 pt-14">
           <p className="eyebrow">Same category</p>
           <h2 id="related-catalog-heading" className="mt-4 font-editorial text-4xl text-ivory sm:text-5xl">
-            Other published records
+            More in this category
           </h2>
           {related.length === 0 ? (
             <p className="mt-6 max-w-lg text-sm leading-relaxed text-silver">No other published product is in this category.</p>

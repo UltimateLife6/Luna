@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: CatalogProductPageProps): Pro
   const product = await getPublishedBySlug(slug);
 
   if (!product) {
-    return pageMetadata("Not in the local catalog");
+    return pageMetadata("Not in the catalog");
   }
 
   return {

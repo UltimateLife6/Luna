@@ -73,7 +73,7 @@ describe("money", () => {
 describe("availability", () => {
   it("states stock, made-to-order, and an unknown empty variant list", () => {
     assert.equal(availabilityFor(false, 2).code, "in-stock");
-    assert.equal(availabilityFor(false, 0).text, "Out of stock in the local catalog.");
+    assert.equal(availabilityFor(false, 0).text, "Out of stock.");
     assert.match(availabilityFor(true, 0).text, /Made to order/);
     assert.match(availabilityFor(true, 1).text, /1 finished piece/);
     assert.equal(availabilityForVariants(false, []).code, "unknown");
@@ -119,12 +119,7 @@ describe("catalog database", () => {
         seededCategories.map((category) => category.slug),
       );
       assert.equal(listCatalogProducts(database, "admin").length, 0);
-      const stored = new Set(listCatalogProducts(database, "admin").map((product) => product.slug));
-
-      for (const product of products) {
-        assert.equal(stored.has(product.slug), false);
-        assert.equal(product.attribution, "fictional-example");
-      }
+      assert.equal(products.length, 0);
     });
   });
 

@@ -16,7 +16,7 @@ export function CustomCreations() {
             Custom creations.
           </h2>
           <p className="max-w-md text-sm leading-relaxed text-ivory/80 sm:text-base lg:col-span-5">
-            The commission builder walks through a leather color, hardware choice, size, and notes. It is a demonstration. No request can be submitted.
+            Custom pieces include a choice of stitching, buckle color, and sizing.
           </p>
         </div>
         {custom ? (
@@ -29,7 +29,7 @@ export function CustomCreations() {
               sizes="(min-width: 768px) 28rem, 100vw"
             />
             <p className="mt-3 text-sm leading-relaxed text-ivory/75">
-              A supplied photograph of a person wearing a harness. This person is not identified as the maker, and the piece is not offered here.
+              A photograph from the work.
             </p>
           </div>
         ) : null}

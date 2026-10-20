@@ -37,7 +37,7 @@ export function EventsPreview() {
               <p className="eyebrow text-ivory/70">Upcoming</p>
               <p className="mt-4 font-editorial text-4xl italic leading-tight text-ivory sm:text-5xl">No dates are listed.</p>
               <p className="mt-4 max-w-md text-sm leading-relaxed text-ivory/80">
-                This space stays empty until an appearance is supplied. No convention or market has been invented for the demo.
+                Markets, conventions, and collaborations will be posted when a date is confirmed.
               </p>
             </>
           )}

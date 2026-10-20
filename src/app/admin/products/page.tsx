@@ -20,14 +20,14 @@ export default async function AdminProductsPage() {
   return (
     <article className="py-16 sm:py-24">
       <Container>
-        <p className="eyebrow">Local only</p>
+        <p className="eyebrow">Admin</p>
         <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <h1 className="max-w-3xl font-editorial text-[2.5rem] leading-[0.95] text-ivory sm:text-6xl">Catalog records</h1>
           <Button href="/admin/products/new">New record</Button>
         </div>
         <AdminSectionNav current="records" />
         <p className="mt-6 max-w-2xl text-sm leading-relaxed text-silver">
-          Drafts and archived records stay off the public catalog. Published records show the price and inventory saved here. Nothing on this screen is taken from the fictional shop examples.
+          Drafts and archived records stay off the public catalog. Published records show the price and inventory saved here.
         </p>
         <form action={logoutAction} className="mt-6">
           <Button type="submit" variant="ghost">

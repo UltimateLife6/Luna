@@ -31,8 +31,8 @@ function isLocalSrc(src: string | undefined): src is string {
 export function DemoImage({
   src,
   alt,
-  kicker = "Demo placeholder",
-  label = "Approved photography can replace this frame.",
+  kicker = "Photograph",
+  label = "Photograph coming soon.",
   priority = false,
   sizes = "(min-width: 1024px) 40vw, 100vw",
   className,

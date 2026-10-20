@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { approvedPublicPath } from "@/data/image-assets";
 import { DemoImage } from "@/components/ui/DemoImage";
 import { categoryTitle, customizationIndicator } from "@/lib/catalog";
 import type { Product } from "@/types/catalog";
@@ -20,7 +19,7 @@ export function ProductCard({ product, headingLevel = 2 }: ProductCardProps) {
         <DemoImage
           decorative
           src={image?.src}
-          kicker={approvedPublicPath(image?.src) ? "Photograph" : "Concept imagery"}
+          kicker="Photograph"
           label={image?.label ?? product.name}
           alt=""
           aspectClassName="aspect-[4/5]"
@@ -29,7 +28,7 @@ export function ProductCard({ product, headingLevel = 2 }: ProductCardProps) {
         <p className="mt-5 eyebrow">{categoryTitle(product.category)}</p>
         <Heading className="mt-3 font-editorial text-3xl leading-tight text-ivory sm:text-4xl">{product.name}</Heading>
         <p className="mt-3 text-sm leading-relaxed text-silver">
-          {product.attribution === "verified-listing" ? "Verified listing · Not sold on this site" : "Concept example · Not for sale"}
+          {product.summary}
         </p>
         {options ? <p className="mt-2 max-w-sm text-sm leading-relaxed text-ivory">{options}</p> : null}
         <span className="mt-5 inline-flex min-h-11 items-center text-xs uppercase tracking-[0.16em] text-ivory">View details</span>

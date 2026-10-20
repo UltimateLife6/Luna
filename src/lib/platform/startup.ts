@@ -16,6 +16,11 @@ export async function registerNode(): Promise<void> {
     return;
   }
 
+  if (!process.env.DATABASE_URL?.trim()) {
+    logInfo("database", "DATABASE_URL is not set. Catalog, cart, and policies stay closed.");
+    return;
+  }
+
   try {
     const versions = await migrate(await applicationSql());
     logInfo("database", `PostgreSQL migrations applied: ${versions.join(", ") || "already current"}.`);

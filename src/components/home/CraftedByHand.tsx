@@ -12,7 +12,7 @@ export function CraftedByHand() {
             Crafted by hand.
           </h2>
           <p className="mt-6 max-w-md text-base leading-relaxed text-silver sm:text-lg">
-            What can be said about the work comes from the maker’s public description. Nothing here is added beyond that.
+            Each piece is made by hand in vegetable-tanned leather.
           </p>
           <dl className="mt-10 border-l border-burgundy">
             {craftPoints.map((point) => (
@@ -25,9 +25,9 @@ export function CraftedByHand() {
         </div>
         <div className="lg:col-span-6 lg:col-start-7">
           <DemoImage
-            kicker="Concept imagery"
-            label="Craft photograph not yet placed"
-            alt="Concept imagery beside the craftsmanship notes. No Luna Fae piece is shown."
+            kicker="Photograph"
+            label="Photograph coming soon."
+            alt="Luna Fae Leathers."
             aspectClassName="aspect-[4/5] sm:aspect-[5/6]"
             sizes="(min-width: 1024px) 42vw, 100vw"
           />

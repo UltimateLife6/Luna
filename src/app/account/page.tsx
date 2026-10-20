@@ -27,7 +27,7 @@ export default async function AccountPage() {
       />
       <Container className="pb-20">
         {"error" in configuration ? (
-          <p className="text-base text-silver">Customer accounts are closed until AUTH_SECRET is set.</p>
+          <p className="text-base text-silver">Customer accounts are not open yet.</p>
         ) : customer ? (
           <div className="space-y-6">
             <p className="break-words text-sm text-ivory">{customer.email}</p>

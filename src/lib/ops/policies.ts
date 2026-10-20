@@ -16,6 +16,24 @@ export function isPolicySlug(value: string): value is PolicySlug {
   return policySlugs.some((slug) => slug === value);
 }
 
+const policyTitles: Record<PolicySlug, string> = {
+  shipping: "Shipping",
+  returns: "Returns and exchanges",
+  privacy: "Privacy",
+  terms: "Terms",
+  "custom-orders": "Custom-order policies",
+};
+
+export function unpublishedPolicyShells(): StorePolicy[] {
+  return policySlugs.map((slug) => ({
+    slug,
+    title: policyTitles[slug],
+    body: "",
+    published: false,
+    updatedAt: "1970-01-01T00:00:00.000Z",
+  }));
+}
+
 export function policyPublicationDecision(body: string, publish: boolean): { published: boolean } | { error: string } {
   if (body.length > 20000) {
     return { error: "The policy text is too long to save." };

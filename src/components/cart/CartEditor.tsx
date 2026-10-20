@@ -42,18 +42,11 @@ export function CartEditor({
         ))}
       </ul>
       <p className="text-sm text-ivory">Subtotal {subtotalLabel}</p>
-      <p className="max-w-2xl text-sm leading-relaxed text-silver">
-        Shipping is added at Stripe Checkout from rates saved in the local admin. No tax rate is configured.
-      </p>
+      <p className="max-w-2xl text-sm leading-relaxed text-silver">Shipping is added at checkout. Tax is not added.</p>
       {blockers.length > 0 ? (
-        <div role="status" className="max-w-2xl border border-ivory/20 px-4 py-4 text-sm text-ivory">
-          <p>Checkout is off until the missing merchant configuration is saved.</p>
-          <ul className="mt-3 list-disc space-y-1 pl-5">
-            {blockers.map((blocker) => (
-              <li key={blocker}>{blocker}</li>
-            ))}
-          </ul>
-        </div>
+        <p role="status" className="max-w-2xl border border-ivory/20 px-4 py-4 text-sm text-ivory">
+          Checkout is not available yet.
+        </p>
       ) : null}
       <CheckoutForm disabled={blockers.length > 0 || lines.some((line) => line.unavailableReason)} />
     </div>

@@ -36,7 +36,7 @@ export default async function AdminOrderPage({ params }: OrderPageProps) {
   return (
     <article className="py-16 sm:py-24">
       <Container>
-        <p className="eyebrow">Local only</p>
+        <p className="eyebrow">Admin</p>
         <h1 className="mt-4 font-editorial text-[2.5rem] leading-[0.95] text-ivory sm:text-6xl">Order</h1>
         <AdminSectionNav current="orders" />
         <p className="mt-6 flex flex-wrap gap-2">

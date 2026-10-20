@@ -26,6 +26,10 @@ export function allowsSqlite(source: EnvSource = process.env): boolean {
   return appEnv(source) === "local";
 }
 
+export function databaseConfigured(source: EnvSource = process.env): boolean {
+  return allowsSqlite(source) || Boolean(source.DATABASE_URL?.trim());
+}
+
 export function assertDatabaseUrl(value: string | undefined): string {
   const url = value?.trim() ?? "";
 

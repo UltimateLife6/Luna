@@ -13,16 +13,16 @@ export default function ShopPage({ searchParams }: PageProps<"/shop">) {
     <article>
       <PageIntro
         eyebrow="Catalog"
-        title="Concept pieces, arranged for browsing."
-        description="Eight fictional examples stand in for a future catalog. They are not Luna Fae Leathers designs, and none of them can be purchased here."
+        title="The collection."
+        description="Handcrafted leather accessories, masks, harnesses, and fantasy-inspired work."
       />
       <Container className="-mt-8 pb-2 sm:-mt-12">
         <p className="max-w-2xl text-sm leading-relaxed text-silver">
-          Published database records are listed in the{" "}
+          Published pieces are listed in the{" "}
           <Link href="/catalog" className="text-ivory underline decoration-burgundy underline-offset-4">
-            local catalog
+            catalog
           </Link>
-          . They are not mixed into the examples below.
+          .
         </p>
       </Container>
       <Suspense fallback={<ShopCatalogFallback />}>

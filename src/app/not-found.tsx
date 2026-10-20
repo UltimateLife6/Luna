@@ -8,9 +8,9 @@ export default function NotFound() {
   return (
     <Section
       eyebrow="Missing page"
-      title="This page is not part of the demo."
+      title="This page could not be found."
       headingLevel={1}
-      description="The address may be mistyped. Shop, custom orders, gallery, events, about, and contact are available from the menu."
+      description="The address may be mistyped. Shop, custom orders, gallery, events, about, and contact are in the menu."
     >
       <Button href="/">Return home</Button>
     </Section>

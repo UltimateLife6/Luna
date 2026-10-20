@@ -20,7 +20,7 @@ export function availabilityFor(madeToOrder: boolean, inventoryCount: number): A
     return {
       code: "made-to-order-and-in-stock",
       units: inventoryCount,
-      text: `${inventoryCount} finished ${noun} in local inventory. Further pieces are marked made to order.`,
+      text: `${inventoryCount} finished ${noun} available. Further pieces are made to order.`,
     };
   }
 
@@ -29,7 +29,7 @@ export function availabilityFor(madeToOrder: boolean, inventoryCount: number): A
     return {
       code: "in-stock",
       units: inventoryCount,
-      text: `${inventoryCount} finished ${noun} in local inventory.`,
+      text: `${inventoryCount} finished ${noun} available.`,
     };
   }
 
@@ -37,14 +37,14 @@ export function availabilityFor(madeToOrder: boolean, inventoryCount: number): A
     return {
       code: "made-to-order",
       units: 0,
-      text: "Made to order. No finished pieces are in local inventory.",
+      text: "Made to order. No finished pieces are available.",
     };
   }
 
   return {
     code: "out-of-stock",
     units: 0,
-    text: "Out of stock in the local catalog.",
+    text: "Out of stock.",
   };
 }
 

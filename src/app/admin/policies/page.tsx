@@ -17,7 +17,7 @@ export default async function AdminPoliciesPage() {
   return (
     <article className="py-16 sm:py-24">
       <Container>
-        <p className="eyebrow">Local only</p>
+        <p className="eyebrow">Admin</p>
         <h1 className="mt-4 font-editorial text-[2.5rem] leading-[0.95] text-ivory sm:text-6xl">Policies</h1>
         <AdminSectionNav current="policies" />
         <p className="mt-6 max-w-2xl text-sm leading-relaxed text-silver">

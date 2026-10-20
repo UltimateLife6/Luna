@@ -22,13 +22,11 @@ export function GalleryPreview() {
           <div>
             <p className="eyebrow">Portfolio</p>
             <h2 id="home-gallery-heading" className="mt-4 max-w-xl font-editorial text-4xl leading-[1.05] text-ivory sm:text-6xl">
-              A gallery, still quiet.
+              From the work.
             </h2>
           </div>
           <p className="max-w-sm text-sm leading-relaxed text-silver sm:text-base">
-            {preview.length === 0
-              ? "Approved photographs will replace these frames. Nothing pictured here is a Luna Fae piece."
-              : "Supplied photographs. They are not verified as catalog products, and the people pictured are not identified as the maker."}
+            {preview.length === 0 ? "Photographs will be placed here." : "Photographs of the work."}
           </p>
         </div>
         {preview.length > 0 ? (
@@ -48,24 +46,14 @@ export function GalleryPreview() {
             ))}
           </ul>
         ) : (
-          <ul className="mt-12 grid grid-cols-2 gap-3 md:grid-cols-12 md:gap-5">
-            {conceptFrames.map((frame) => (
-              <li key={frame.label} className={frame.className}>
-                <DemoImage
-                  decorative
-                  kicker="Concept imagery"
-                  label={frame.label}
-                  alt=""
-                  aspectClassName={frame.aspectClassName}
-                  sizes="(min-width: 768px) 40vw, 100vw"
-                />
-              </li>
-            ))}
-          </ul>
+          <div className="mt-12 border border-ivory/10 bg-oxblood px-6 py-12 sm:px-10">
+            <p className="eyebrow text-ivory/80">Portfolio</p>
+            <p className="mt-4 max-w-xl font-editorial text-4xl leading-tight text-ivory sm:text-5xl">Photographs will be placed here.</p>
+          </div>
         )}
         <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-silver">
-            {preview.length === 0 ? "No portfolio entries are on file." : `${preview.length} placed in this preview.`}
+            {preview.length === 0 ? "The gallery is being prepared." : `${preview.length} photographs.`}
           </p>
           <Button href="/gallery" variant="secondary">
             View the gallery

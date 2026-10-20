@@ -13,7 +13,7 @@ export default async function PoliciesPage() {
 
   return (
     <article>
-      <PageIntro eyebrow="Policies" title="Store policies." description="A section appears here after the owner publishes it." />
+      <PageIntro eyebrow="Policies" title="Store policies." description="Policies will be posted here." />
       <Container className="pb-20">
         <ul className="divide-y divide-ivory/10 border-y border-ivory/10">
           {policies.map((policy) => (

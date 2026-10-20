@@ -328,7 +328,7 @@ export function approvedPresentation(id: string): { src: string; alt: string; la
     return undefined;
   }
 
-  const src = displayPath(`/images/${asset.publicFilename}`);
+  const src = approvedPublicPath(`/images/${asset.publicFilename}`);
 
   if (!src) {
     return undefined;

@@ -3,7 +3,7 @@ export const collections = [
     index: "01",
     title: "Leather Accessories",
     category: "accessories",
-    note: "Concept examples. Not a stock list.",
+    note: "Collars, cuffs, and other leather accessories.",
     className: "md:col-span-7",
     aspectClassName: "aspect-[4/3] md:aspect-[4/5]",
   },
@@ -11,7 +11,7 @@ export const collections = [
     index: "02",
     title: "Masks & Headpieces",
     category: "masks",
-    note: "Concept examples. Not a stock list.",
+    note: "Masks and headpieces.",
     className: "md:col-span-5",
     aspectClassName: "aspect-[4/3] md:aspect-[5/4]",
   },
@@ -19,7 +19,7 @@ export const collections = [
     index: "03",
     title: "Harnesses",
     category: "harnesses",
-    note: "Concept examples. Not a stock list.",
+    note: "Harnesses shaped by hand.",
     className: "md:col-span-5",
     aspectClassName: "aspect-[4/3] md:aspect-[5/4]",
   },
@@ -27,7 +27,7 @@ export const collections = [
     index: "04",
     title: "Fantasy-Inspired Leatherwork",
     category: "fantasy",
-    note: "Concept examples. Not a stock list.",
+    note: "Fantasy-inspired leather armor and accessories.",
     className: "md:col-span-7",
     aspectClassName: "aspect-[4/3] md:aspect-[16/10]",
   },
@@ -40,7 +40,7 @@ export const craftPoints = [
   },
   {
     title: "Vegetable-tanned leather",
-    body: "The maker’s Instagram bio describes the leather as 100% vegetable-tanned.",
+    body: "The leather is 100% vegetable-tanned.",
   },
   {
     title: "Personalized sizing and details",
@@ -48,22 +48,22 @@ export const craftPoints = [
   },
   {
     title: "Stitching and hardware",
-    body: "Stitching and buckle color are the customizations described publicly. No further finishes are claimed here.",
+    body: "Stitching and buckle color can be chosen with the piece, along with sizing.",
   },
 ] as const;
 
 export const commissionNotes = [
   {
-    title: "Leather color",
-    body: "The demonstration can ask for a color. No palette is published here, because none has been confirmed.",
+    title: "Stitching",
+    body: "Stitching is chosen with the piece.",
   },
   {
-    title: "Hardware",
-    body: "Buckle color is part of the public customization. The hardware choices in the demonstration are examples.",
+    title: "Buckle color",
+    body: "Buckle color is part of the custom work.",
   },
   {
     title: "Sizing",
-    body: "The demonstration offers sizing paths. It does not collect measurements, and it cannot submit a request.",
+    body: "Sizing is shaped to the person who will wear the piece.",
   },
 ] as const;
 

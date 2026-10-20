@@ -21,7 +21,7 @@ export async function registerCustomerAction(_state: AccountFormState, formData:
   const configuration = authConfiguration();
 
   if ("error" in configuration) {
-    return { errors: ["Customer accounts are closed until AUTH_SECRET is set."], notice: "" };
+    return { errors: ["Customer accounts are not open yet."], notice: "" };
   }
 
   const now = new Date();
@@ -60,7 +60,7 @@ export async function signInCustomerAction(_state: AccountFormState, formData: F
   const configuration = authConfiguration();
 
   if ("error" in configuration) {
-    return { errors: ["Customer accounts are closed until AUTH_SECRET is set."], notice: "" };
+    return { errors: ["Customer accounts are not open yet."], notice: "" };
   }
 
   const now = new Date();

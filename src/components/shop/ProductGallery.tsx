@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { approvedPublicPath } from "@/data/image-assets";
 import { DemoImage } from "@/components/ui/DemoImage";
 import { cn } from "@/lib/cn";
 import type { CatalogImage } from "@/types/catalog";
@@ -31,7 +30,7 @@ export function ProductGallery({ name, images }: ProductGalleryProps) {
       <DemoImage
         src={image.src}
         alt={image.alt}
-        kicker={approvedPublicPath(image.src) ? "Photograph" : "Concept imagery"}
+        kicker="Photograph"
         label={image.label ?? name}
         aspectClassName="aspect-[4/5]"
         sizes="(min-width: 1024px) 55vw, 100vw"
@@ -43,7 +42,7 @@ export function ProductGallery({ name, images }: ProductGalleryProps) {
         <div
           className="mt-4 flex flex-wrap gap-2"
           role="group"
-          aria-label="Concept frames"
+          aria-label="Photographs"
           onKeyDown={(event) => {
             if (event.key === "ArrowRight") {
               event.preventDefault();
@@ -91,9 +90,9 @@ function frameControlClass(selected: boolean): string {
 
 function fallbackFrame(name: string): CatalogImage {
   return {
-    alt: `Concept imagery for ${name}. No merchandise is shown.`,
+    alt: name,
     source: "concept",
     approval: "concept",
-    label: "Photograph not yet placed",
+    label: "Photograph coming soon.",
   };
 }

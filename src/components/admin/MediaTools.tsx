@@ -54,7 +54,7 @@ export function MediaTools({ returnTo, uploads }: { returnTo: string; uploads: {
             Approval
             <select className={fieldClass} name="approval" defaultValue="withheld">
               <option value="withheld">Withheld</option>
-              <option value="approved-for-demo">Approved for the demo</option>
+              <option value="approved-for-demo">Approved for the site</option>
             </select>
           </label>
           <Button type="submit" variant="secondary" disabled={approvalPending}>

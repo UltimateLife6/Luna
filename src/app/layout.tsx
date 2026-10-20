@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cinzel, Cormorant_Garamond, Manrope } from "next/font/google";
 import { Suspense } from "react";
-import { DemoBanner } from "@/components/layout/DemoBanner";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteHeaderFallback } from "@/components/layout/SiteHeaderFallback";
@@ -35,7 +34,7 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: {
     default: site.title,
-    template: "%s · Luna Fae Leathers Demo",
+    template: "%s · Luna Fae Leathers",
   },
   description: site.description,
   applicationName: site.title,
@@ -62,7 +61,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-dvh flex-col antialiased">
         <SkipLink />
         <div className="sticky top-0 z-40">
-          <DemoBanner />
           <Suspense fallback={<SiteHeaderFallback />}>
             <SiteHeader />
           </Suspense>

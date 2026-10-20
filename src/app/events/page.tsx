@@ -16,19 +16,19 @@ export default function EventsPage() {
       <PageIntro
         eyebrow="On the road"
         title="Appearances, when they are confirmed."
-        description="Markets, conventions, and collaborations belong here only after a name, date, and place are supplied. Nothing on this page is inferred."
+        description="Markets, conventions, and collaborations are listed when a date is confirmed."
       />
       <Container className="grid gap-16 pb-16 sm:pb-24 lg:grid-cols-2">
         <AppearanceGroup
           title="Upcoming"
-          emptyTitle="No appearances have been added to the demo."
-          emptyBody="Upcoming names, dates, and venues stay off this page until they are confirmed."
+          emptyTitle="No dates are listed."
+          emptyBody="Markets, conventions, and collaborations will be posted when a date is confirmed."
           items={upcoming}
         />
         <AppearanceGroup
           title="Past"
-          emptyTitle="No past appearances are on file."
-          emptyBody="Earlier markets and conventions are omitted rather than reconstructed."
+          emptyTitle="No past appearances are listed."
+          emptyBody="Earlier dates will be added when they are confirmed."
           items={past}
         />
       </Container>
@@ -59,7 +59,7 @@ function AppearanceGroup({
         <ul className="mt-8">
           {items.map((item) => (
             <li key={item.id} className="border-b border-ivory/10 py-8">
-              <p className="eyebrow">{item.verification === "verified" ? "Verified" : "Demo record"}</p>
+              <p className="eyebrow">{item.verification === "verified" ? "Confirmed" : "Listed"}</p>
               <h3 className="mt-3 font-editorial text-3xl text-ivory sm:text-4xl">{item.name}</h3>
               {item.dateLabel ? <p className="mt-3 text-sm text-silver">{item.dateLabel}</p> : null}
               {item.location ? <p className="mt-1 text-sm text-silver">{item.location}</p> : null}

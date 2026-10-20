@@ -17,7 +17,7 @@ export function FeaturedCollections() {
             </h2>
           </div>
           <p className="max-w-sm text-sm leading-relaxed text-silver sm:text-base">
-            Illustrative categories for browsing later. They are not a claim that these pieces are in stock.
+            Accessories, masks, harnesses, and fantasy-inspired leatherwork.
           </p>
         </div>
         <ul className="mt-12 grid gap-12 md:grid-cols-12 md:items-start md:gap-x-6 md:gap-y-14">
@@ -31,7 +31,7 @@ export function FeaturedCollections() {
                     decorative={!photo}
                     src={photo?.src}
                     objectPosition={photo?.objectPosition}
-                    kicker={photo ? "Photograph" : "Concept imagery"}
+                    kicker="Photograph"
                     label={collection.title}
                     alt={photo?.alt ?? ""}
                     aspectClassName={collection.aspectClassName}

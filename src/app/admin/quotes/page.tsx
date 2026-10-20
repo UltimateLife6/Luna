@@ -37,7 +37,7 @@ async function Quotes({ searchParams }: QuotesPageProps) {
   return (
     <article className="py-16 sm:py-24">
       <Container>
-        <p className="eyebrow">Local only</p>
+        <p className="eyebrow">Admin</p>
         <h1 className="mt-4 max-w-3xl font-editorial text-[2.5rem] leading-[0.95] text-ivory sm:text-6xl">Quote requests</h1>
         <AdminSectionNav current="quotes" />
         <p className="mt-6 max-w-2xl text-sm leading-relaxed text-silver">

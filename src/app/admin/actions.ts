@@ -199,7 +199,7 @@ export async function setMediaApprovalAction(_state: FormState, formData: FormDa
   const approval = text(formData, "approval");
 
   if (!isMediaApproval(approval)) {
-    return { errors: ["Choose withheld or approved for the demo."] };
+    return { errors: ["Choose withheld or approved for the site."] };
   }
 
   try {

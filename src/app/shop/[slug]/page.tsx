@@ -10,14 +10,15 @@ import { Container } from "@/components/ui/Container";
 import { getProduct, getRelatedProducts, products } from "@/data/products";
 import { categoryTitle, shopPath } from "@/lib/catalog";
 import { approvedPublicPath } from "@/data/image-assets";
-import { creationTypeForCategory } from "@/lib/commission";
 import { demoRobots, pageMetadata } from "@/lib/metadata";
 import type { Product } from "@/types/catalog";
 
 type ProductRouteProps = PageProps<"/shop/[slug]">;
 
 export function generateStaticParams() {
-  return products.map((product) => ({ slug: product.slug }));
+  const listed = products.map((product) => ({ slug: product.slug }));
+  // Cache Components requires one sample during the build. This address has no product.
+  return listed.length > 0 ? listed : [{ slug: "not-listed" }];
 }
 
 /**
@@ -57,7 +58,7 @@ export default async function ProductDetailPage({ params }: ProductRouteProps) {
 function ProductRecord({ product, related }: { product: Product; related: Product[] }) {
   const imageNote = product.images.some((image) => approvedPublicPath(image.src))
     ? "Includes an approved photograph."
-    : "Concept placeholders. Not approved photography.";
+    : "A photograph has not been placed for this piece.";
 
   return (
     <article className="py-12 sm:py-16">
@@ -87,7 +88,7 @@ function ProductRecord({ product, related }: { product: Product; related: Produc
             <ProductGallery name={product.name} images={product.images} />
           </div>
           <div className="min-w-0 lg:col-span-5">
-            <p className="eyebrow">Concept example</p>
+            <p className="eyebrow">{categoryTitle(product.category)}</p>
             <h1 className="mt-4 text-balance font-editorial text-[2.5rem] leading-[0.95] text-ivory sm:text-6xl">{product.name}</h1>
             <p className="mt-4 text-sm text-silver">{categoryTitle(product.category)}</p>
             <p className="mt-6 text-base leading-relaxed text-ivory">{product.summary}</p>
@@ -96,14 +97,12 @@ function ProductRecord({ product, related }: { product: Product; related: Produc
             <dl className="mt-8 space-y-4 border-t border-ivory/10 pt-6 text-sm">
               <div>
                 <dt className="eyebrow">Record</dt>
-                <dd className="mt-2 text-ivory">{product.status === "verified" ? "Verified" : "Demo"}</dd>
+                <dd className="mt-2 text-ivory">{product.status === "verified" ? "Listed" : "Not listed"}</dd>
               </div>
               <div>
                 <dt className="eyebrow">Attribution</dt>
                 <dd className="mt-2 leading-relaxed text-ivory">
-                  {product.attribution === "verified-listing"
-                    ? "Verified listing."
-                    : "Fictional interface example. Not a Luna Fae Leathers product."}
+                  {product.attribution === "verified-listing" ? "Listed piece." : "This piece is not published."}
                 </dd>
               </div>
               <div>
@@ -116,7 +115,7 @@ function ProductRecord({ product, related }: { product: Product; related: Produc
               {product.customization?.length ? (
                 <CustomizationDemo groups={product.customization} />
               ) : (
-                <p className="text-sm leading-relaxed text-silver">No example options are shown for this record.</p>
+                <p className="text-sm leading-relaxed text-silver">Stitching, buckle color, and sizing can be discussed for a custom piece.</p>
               )}
             </div>
 
@@ -132,13 +131,13 @@ function ProductRecord({ product, related }: { product: Product; related: Produc
             </div>
 
             <div className="mt-8 border-t border-ivory/10 pt-6">
-              <p className="eyebrow">A similar concept</p>
+              <p className="eyebrow">Custom</p>
               <p className="mt-3 text-sm leading-relaxed text-silver">
-                This fictional example is not available to commission. The builder can open with “{categoryTitle(product.category)}” mapped to an example type. That does not make this card orderable.
+                Custom work in {categoryTitle(product.category)} can include stitching, buckle color, and sizing.
               </p>
               <div className="mt-5">
-                <Button href={`/custom?type=${creationTypeForCategory(product.category)}`} variant="secondary">
-                  Open the commission example
+                <Button href="/custom" variant="secondary">
+                  Custom creations
                 </Button>
               </div>
             </div>
@@ -154,10 +153,10 @@ function ProductRecord({ product, related }: { product: Product; related: Produc
         <section aria-labelledby="related-examples-heading" className="mt-20 border-t border-ivory/10 pt-14">
           <p className="eyebrow">Same category</p>
           <h2 id="related-examples-heading" className="mt-4 font-editorial text-4xl text-ivory sm:text-5xl">
-            Related examples
+            Related pieces
           </h2>
           {related.length === 0 ? (
-            <p className="mt-6 max-w-lg text-sm leading-relaxed text-silver">No other concept example shares this category.</p>
+            <p className="mt-6 max-w-lg text-sm leading-relaxed text-silver">No other piece is listed in this category.</p>
           ) : (
             <ul className="mt-10 grid gap-x-8 gap-y-16 sm:grid-cols-2">
               {related.map((item) => (

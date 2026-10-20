@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { DemoImage } from "@/components/ui/DemoImage";
+import { ExternalAnchor } from "@/components/ui/ExternalAnchor";
 import type { PublicCatalogCard } from "@/lib/catalog-store/present";
+import { site } from "@/lib/site";
 
 export function CatalogListing({ products }: { products: PublicCatalogCard[] }) {
   if (products.length === 0) {
     return (
       <div className="pb-20">
-        <p className="max-w-xl text-base leading-relaxed text-silver">No products are published in the local catalog.</p>
-        <p className="mt-4 max-w-xl text-sm leading-relaxed text-silver">
-          Concept examples on the shop page are not inventory. Prices, stock, and made-to-order notes appear here only after they are saved in the local database.
+        <p className="max-w-xl text-base leading-relaxed text-silver">No pieces are published yet.</p>
+        <p className="mt-4">
+          <ExternalAnchor href={site.etsyUrl}>Current listings on Etsy</ExternalAnchor>
         </p>
       </div>
     );
@@ -43,7 +45,7 @@ function CatalogCard({ product }: { product: PublicCatalogCard }) {
         <DemoImage
           decorative
           src={product.image?.src}
-          kicker={product.image ? "Photograph not published" : "No photograph"}
+          kicker="Photograph"
           label={product.image?.label ?? "No photograph is marked as this product."}
           alt=""
           objectPosition={product.image?.objectPosition}

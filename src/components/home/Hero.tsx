@@ -14,10 +14,10 @@ export function Hero() {
             priority
             src={hero?.src}
             objectPosition={hero?.objectPosition}
-            kicker={hero ? "Photograph" : "Concept imagery"}
-            label={hero ? "Homepage photograph" : "Photograph not yet placed"}
+            kicker="Photograph"
+            label={hero ? "Homepage photograph" : "Photograph coming soon."}
             sizes="(min-width: 1024px) 50vw, 100vw"
-            alt={hero?.alt ?? "Concept imagery for the Luna Fae Leathers homepage. No merchandise is shown."}
+            alt={hero?.alt ?? "Luna Fae Leathers."}
           />
         </div>
         <div className="order-1 flex min-w-0 flex-col justify-end px-5 py-14 sm:px-10 sm:py-20 lg:order-2 lg:px-14 lg:py-16 xl:px-16">
@@ -32,7 +32,7 @@ export function Hero() {
             Handcrafted leather accessories and apparel, made for personal expression.
           </p>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-silver sm:text-base">
-            An unofficial boutique concept. The collection is not loaded, and nothing on this site is for sale.
+            Vegetable-tanned leather, with stitching, buckle color, and sizing shaped to the wearer.
           </p>
           <div className="mt-10 flex max-w-xl flex-col gap-3 sm:flex-row">
             <Button href="/shop">Explore the Collection</Button>

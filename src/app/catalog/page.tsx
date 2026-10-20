@@ -7,19 +7,19 @@ import { presentPublishedCard } from "@/lib/catalog-store/present";
 import { pageMetadata } from "@/lib/metadata";
 import { connection } from "next/server";
 
-export const metadata = pageMetadata("Local catalog");
+export const metadata = pageMetadata("Catalog");
 export const ensureStatic = "shell";
 
 export default function CatalogPage() {
   return (
     <article>
       <PageIntro
-        eyebrow="Local catalog"
-        title="Published records from the local database."
-        description="Only products saved as published are listed. Drafts, archived records, and the fictional shop examples are not inventory. Quote-only records stay outside checkout."
+        eyebrow="Catalog"
+        title="Published pieces."
+        description="Pieces appear here after they are published. Quote-only records stay outside checkout."
       />
       <Container>
-        <Suspense fallback={<p className="pb-20 text-sm text-silver">Loading the local catalog.</p>}>
+        <Suspense fallback={<p className="pb-20 text-sm text-silver">Loading the catalog.</p>}>
           <PublishedCatalog />
         </Suspense>
       </Container>

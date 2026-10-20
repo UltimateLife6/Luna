@@ -13,7 +13,7 @@ import type { WebhookCommand } from "@/lib/commerce/events";
 import { readStripeSecret } from "@/lib/commerce/config";
 import { reviewCheckoutReservation, reconcileReservations, type PaymentObservation, type ReconcileSummary, type ReservationBook, type ReviewResult } from "@/lib/commerce/reconciliation";
 import { readCheckoutPayment } from "@/lib/commerce/stripe";
-import { allowsSqlite, assertStripeTestConfiguration } from "@/lib/platform/env";
+import { allowsSqlite, assertStripeTestConfiguration, databaseConfigured } from "@/lib/platform/env";
 import * as pgCatalog from "@/lib/platform/catalog-repo";
 import * as pgCommerce from "@/lib/platform/commerce-repo";
 import { mediaAsset, listMediaRecords } from "@/lib/platform/media-records";
@@ -22,7 +22,7 @@ import { logError } from "@/lib/platform/log";
 import { applicationSql } from "@/lib/platform/runtime";
 import { listDeliveries, senderFromEnv } from "@/lib/ops/notifications";
 import { getCustomerOrder, listCustomerOrders, listOrderActivity, notifyAfterWebhook, notifyQuoteReceived, notifyQuoteStatus, orderShipmentFields, requestOrigin, saveShipment } from "@/lib/ops/orders";
-import { getPolicy, listPolicies, savePolicy } from "@/lib/ops/policies";
+import { getPolicy, listPolicies, savePolicy, unpublishedPolicyShells } from "@/lib/ops/policies";
 import { addOrderEvent, issueTrackingToken, lookupPublicOrder, rotateTrackingToken, trackingHintMatchesOrder } from "@/lib/ops/tracking";
 
 async function sql() {
@@ -34,6 +34,7 @@ export async function listCategories(): Promise<CatalogCategory[]> {
 }
 
 export async function listCatalogProducts(scope: "public" | "admin"): Promise<CatalogProduct[]> {
+  if (!databaseConfigured()) return [];
   return allowsSqlite() ? sqliteProducts.listCatalogProducts(getCatalogDatabase(), scope) : pgCatalog.listCatalogProducts(await sql(), scope);
 }
 
@@ -42,10 +43,12 @@ export async function getCatalogProduct(id: string): Promise<CatalogProduct | un
 }
 
 export async function getPublishedBySlug(slug: string): Promise<CatalogProduct | undefined> {
+  if (!databaseConfigured()) return undefined;
   return allowsSqlite() ? sqliteProducts.getPublishedBySlug(getCatalogDatabase(), slug) : pgCatalog.getPublishedBySlug(await sql(), slug);
 }
 
 export async function listRelatedPublished(product: CatalogProduct): Promise<CatalogProduct[]> {
+  if (!databaseConfigured()) return [];
   return allowsSqlite() ? sqliteProducts.listRelatedPublished(getCatalogDatabase(), product) : pgCatalog.listRelatedPublished(await sql(), product);
 }
 
@@ -105,6 +108,9 @@ export async function removeCartItem(cartId: string, itemId: string): Promise<vo
 }
 
 export async function readCart(cartId: string, now: Date): Promise<CartView> {
+  if (!databaseConfigured()) {
+    return { id: cartId, lines: [], subtotalMinor: 0 };
+  }
   return allowsSqlite() ? sqliteStore.readCart(getCatalogDatabase(), cartId, now) : pgCommerce.readCart(await sql(), cartId, now);
 }
 
@@ -113,6 +119,7 @@ export async function listShippingRates(): Promise<ShippingRate[]> {
 }
 
 export async function activeShippingRates(): Promise<ShippingRate[]> {
+  if (!databaseConfigured()) return [];
   return allowsSqlite() ? sqliteStore.activeShippingRates(getCatalogDatabase()) : pgCommerce.activeShippingRates(await sql());
 }
 
@@ -229,6 +236,7 @@ export async function applyWebhookCommand(command: WebhookCommand, now: Date): P
 }
 
 export async function orderForSession(sessionId: string): Promise<StoredOrder | null> {
+  if (!databaseConfigured()) return null;
   return allowsSqlite() ? sqliteStore.orderForSession(getCatalogDatabase(), sessionId) : pgCommerce.orderForSession(await sql(), sessionId);
 }
 
@@ -348,10 +356,12 @@ export async function customerOrder(customerId: string, orderId: string) {
 }
 
 export async function storePolicies() {
+  if (!databaseConfigured()) return unpublishedPolicyShells();
   return listPolicies(await sql());
 }
 
 export async function storePolicy(slug: string) {
+  if (!databaseConfigured()) return unpublishedPolicyShells().find((policy) => policy.slug === slug) ?? null;
   return getPolicy(await sql(), slug);
 }
 
@@ -360,6 +370,10 @@ export async function updateStorePolicy(slug: string, body: string, publish: boo
 }
 
 export async function publishedAssetFinder(): Promise<(id: string) => CatalogAssetRecord | undefined> {
+  if (!databaseConfigured()) {
+    return (id: string) => findCatalogAsset(id);
+  }
+
   const media = await listMediaRecords(await sql());
   const approved = new Map(media.filter((record) => record.approval === "approved-for-demo").map((record) => [record.id, mediaAsset(record)]));
 

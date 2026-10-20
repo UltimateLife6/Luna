@@ -22,14 +22,12 @@ export function PurchaseState({ etsyUrl }: PurchaseStateProps) {
       ) : (
         <>
           <p className="eyebrow">Purchase</p>
-          <p className="mt-3 font-editorial text-2xl text-ivory">This example cannot be purchased.</p>
-          <p className="mt-3 text-sm leading-relaxed text-silver">
-            It is a fictional concept for the interface. No listing has been verified for it, so there is no product link.
-          </p>
+          <p className="mt-3 font-editorial text-2xl text-ivory">This piece is not listed for purchase here.</p>
+          <p className="mt-3 text-sm leading-relaxed text-silver">Current listings are on the Etsy shop.</p>
         </>
       )}
       <p className="mt-6 border-t border-ivory/10 pt-5 text-sm leading-relaxed text-silver">
-        The maker’s shop is a separate destination. It is not a way to buy the example on this page.
+        The Etsy shop is open in a separate window.
       </p>
       <p className="mt-3">
         <ExternalAnchor href={site.etsyUrl}>Luna Fae Leathers on Etsy</ExternalAnchor>

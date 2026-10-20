@@ -24,11 +24,6 @@ export function SiteFooter() {
                 </Link>
               </li>
             ))}
-            <li>
-              <Link href="/catalog" className="text-sm text-ivory hover:text-silver">
-                Local catalog
-              </Link>
-            </li>
             {utilityNav.map((item) => (
               <li key={item.href}>
                 <Link href={item.href} className="inline-flex min-h-11 items-center text-sm text-ivory hover:text-silver">

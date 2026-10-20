@@ -39,7 +39,7 @@ export async function ShopCatalog({ searchParams }: { searchParams: Promise<Reco
         <ul className="flex flex-wrap gap-2">
           <li className="max-w-full">
             <CategoryLink href={shopPath({ q: filters.q })} current={!filters.rawCategory}>
-              All examples
+              All
             </CategoryLink>
           </li>
           {categories.map((category) => (
@@ -54,7 +54,7 @@ export async function ShopCatalog({ searchParams }: { searchParams: Promise<Reco
 
       <div className="mt-8 flex flex-col gap-3 border-t border-ivory/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
         <p role="status" className="text-sm text-silver">
-          Showing {matches.length} of {products.length} concept examples.
+          {products.length === 0 ? "No pieces are listed yet." : `Showing ${matches.length} of ${products.length}.`}
         </p>
         {filtersActive ? (
           <Link href="/shop" className="inline-flex min-h-11 items-center text-xs uppercase tracking-[0.16em] text-ivory">
@@ -66,10 +66,8 @@ export async function ShopCatalog({ searchParams }: { searchParams: Promise<Reco
       {matches.length === 0 ? <EmptyCatalog filters={filters} /> : <CatalogGrid matches={matches} />}
 
       <aside className="mt-16 border-t border-ivory/10 pt-10">
-        <p className="eyebrow">Separate from these examples</p>
-        <p className="mt-4 max-w-xl text-sm leading-relaxed text-silver">
-          None of the cards above can be purchased. The link below opens the maker’s Etsy shop. It is not a checkout for the concept examples.
-        </p>
+        <p className="eyebrow">Also available</p>
+        <p className="mt-4 max-w-xl text-sm leading-relaxed text-silver">Current listings are on the Etsy shop.</p>
         <p className="mt-5">
           <ExternalAnchor href={site.etsyUrl}>Luna Fae Leathers on Etsy</ExternalAnchor>
         </p>
@@ -91,24 +89,31 @@ function CatalogGrid({ matches }: { matches: typeof products }) {
 }
 
 function EmptyCatalog({ filters }: { filters: ShopFilters }) {
+  const filtered = Boolean(filters.q || filters.rawCategory);
   const detail = filters.categoryIsUnknown
-    ? "That category is not part of this demo."
+    ? "That category is not listed."
     : filters.q && filters.category
-      ? `No concept example in ${categoryTitle(filters.category)} matches “${filters.q}”.`
+      ? `Nothing in ${categoryTitle(filters.category)} matches “${filters.q}”.`
       : filters.q
-        ? `No concept example matches “${filters.q}”.`
-        : "No concept examples are in this view.";
+        ? `Nothing matches “${filters.q}”.`
+        : filters.category
+          ? `No pieces are listed in ${categoryTitle(filters.category)}.`
+          : "Pieces will appear here as they are ready.";
 
   return (
     <div className="mt-12 border border-ivory/10 bg-oxblood px-6 py-12 sm:px-10">
-      <p className="eyebrow text-ivory/80">No matches</p>
-      <p className="mt-4 max-w-xl font-editorial text-4xl leading-tight text-ivory sm:text-5xl">Nothing fits that search.</p>
+      <p className="eyebrow text-ivory/80">{filtered ? "No matches" : "The collection"}</p>
+      <p className="mt-4 max-w-xl font-editorial text-4xl leading-tight text-ivory sm:text-5xl">
+        {filtered ? "Nothing fits that search." : "No pieces are listed yet."}
+      </p>
       <p className="mt-4 max-w-lg text-sm leading-relaxed text-ivory">{detail}</p>
-      <div className="mt-8">
-        <Button href="/shop" variant="secondary">
-          Clear filters
-        </Button>
-      </div>
+      {filtered ? (
+        <div className="mt-8">
+          <Button href="/shop" variant="secondary">
+            Clear filters
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -2,17 +2,17 @@ export const primaryNav = [
   {
     href: "/shop",
     label: "Shop",
-    summary: "Fictional concept examples for browsing. None can be purchased.",
+    summary: "Leather accessories, masks, harnesses, and fantasy-inspired work.",
   },
   {
     href: "/custom",
     label: "Custom",
-    summary: "A guided commission demonstration. Nothing is submitted.",
+    summary: "Custom stitching, buckle color, and sizing.",
   },
   {
     href: "/gallery",
     label: "Gallery",
-    summary: "Concept frames until approved photographs are placed.",
+    summary: "Photographs of the work.",
   },
   {
     href: "/events",
@@ -22,12 +22,12 @@ export const primaryNav = [
   {
     href: "/about",
     label: "About",
-    summary: "The maker, the materials, and what this demo does not claim.",
+    summary: "The maker and the materials.",
   },
   {
     href: "/contact",
     label: "Contact",
-    summary: "A contact demonstration. Notes are not sent.",
+    summary: "Instagram and Etsy.",
   },
 ] as const;
 
