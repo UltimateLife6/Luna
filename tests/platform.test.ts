@@ -27,6 +27,7 @@ import {
   saveShippingRate,
   variantLockSql,
 } from "@/lib/platform/commerce-repo";
+import { displayPath, privatePreviewAllowed } from "@/data/image-assets";
 import { allowsSqlite, appEnv, assertDatabaseUrl, assertStripeTestConfiguration, authConfiguration, databaseConfigured, mediaBackend } from "@/lib/platform/env";
 import { importSqliteCatalog } from "@/lib/platform/import-sqlite";
 import { redact } from "@/lib/platform/log";
@@ -112,6 +113,32 @@ describe("hosted configuration", () => {
     assert.equal(mediaBackend({ APP_ENV: "production" }), "unconfigured");
     assert.equal(mediaBackend({ APP_ENV: "local" }), "local");
     assert.equal(redact("connect postgres://user:secret@host/db with sk_test_abc"), "connect [redacted] with [redacted]");
+    assert.equal(privatePreviewAllowed({ NODE_ENV: "production" }), false);
+    assert.equal(privatePreviewAllowed({ NODE_ENV: "production", VERCEL_ENV: "production", NEXT_PUBLIC_PREVIEW_PHOTOS: "1" }), false);
+    assert.equal(privatePreviewAllowed({ NODE_ENV: "production", VERCEL_ENV: "preview" }), true);
+    assert.equal(privatePreviewAllowed({ NODE_ENV: "development" }), true);
+    const previous = {
+      vercel: process.env.VERCEL_ENV,
+      preview: process.env.NEXT_PUBLIC_PREVIEW_PHOTOS,
+    };
+
+    try {
+      delete process.env.VERCEL_ENV;
+      delete process.env.NEXT_PUBLIC_PREVIEW_PHOTOS;
+      assert.equal(privatePreviewAllowed(), false);
+      assert.equal(displayPath("/images/img-5249.webp"), undefined);
+      process.env.NEXT_PUBLIC_PREVIEW_PHOTOS = "1";
+      process.env.VERCEL_ENV = "production";
+      assert.equal(privatePreviewAllowed(), false);
+      assert.equal(displayPath("/images/img-5249.webp"), undefined);
+      process.env.VERCEL_ENV = "preview";
+      assert.equal(displayPath("/images/img-5249.webp"), "/private-preview/img-5249.webp");
+    } finally {
+      if (previous.vercel === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = previous.vercel;
+      if (previous.preview === undefined) delete process.env.NEXT_PUBLIC_PREVIEW_PHOTOS;
+      else process.env.NEXT_PUBLIC_PREVIEW_PHOTOS = previous.preview;
+    }
   });
 });
 

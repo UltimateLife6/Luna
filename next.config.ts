@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@neondatabase/serverless"],
   outputFileTracingIncludes: {
     "*": ["./src/lib/platform/migrations/*.sql"],
+    "/private-preview/[file]": ["./photography/derivatives/*.webp"],
   },
   allowedDevOrigins: ["127.0.0.1"],
   cacheComponents: true,

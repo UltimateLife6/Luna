@@ -1,17 +1,17 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { imageAssets } from "@/data/image-assets";
+import { imageAssets, privatePreviewAllowed } from "@/data/image-assets";
 
 type PrivatePreviewRouteProps = {
   params: Promise<{ file: string }>;
 };
 
 /**
- * Serves a private-preview derivative during `next dev` only.
- * Production returns 404 before any file is read.
+ * Serves an optimized derivative in local development and on a protected Vercel preview.
+ * A production deployment returns 404 before any file is read.
  */
 export async function GET(_request: Request, { params }: PrivatePreviewRouteProps) {
-  if (process.env.NODE_ENV !== "development") {
+  if (!privatePreviewAllowed()) {
     return new Response(null, { status: 404 });
   }
 
@@ -27,10 +27,9 @@ export async function GET(_request: Request, { params }: PrivatePreviewRouteProp
     return new Response(null, { status: 404 });
   }
 
-  const root = path.resolve(process.cwd(), "photography", "derivatives");
-  const derivative = path.resolve(process.cwd(), asset.derivativePath);
+  const derivative = path.join(process.cwd(), "photography", "derivatives", file);
 
-  if (derivative !== path.join(root, file)) {
+  if (path.basename(derivative) !== file) {
     return new Response(null, { status: 404 });
   }
 

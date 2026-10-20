@@ -1,7 +1,7 @@
 /**
- * Provenance ledger for photographs that may appear in the demo.
- * `approved-for-private-preview` is local development only.
- * `approved-for-demo` is the only status that may be published.
+ * Provenance ledger for photographs supplied for this website.
+ * `approved-for-private-preview` may render in local development and on a protected Vercel preview.
+ * `approved-for-demo` is the only status that may be published on production.
  */
 
 export type ImageUsageApproval = "approved-for-demo" | "approved-for-private-preview" | "missing" | "ambiguous" | "withheld";
@@ -15,8 +15,10 @@ export type ImageAsset = {
   source: "luna-fae-leathers";
   suppliedBy: "Luna Fae Leathers";
   approval: ImageUsageApproval;
-  /** Public publication stays unverified until `approved-for-demo`. */
+  /** Public production stays closed until `approved-for-demo`. */
   publicPublication: "unverified" | "approved";
+  /** Protected preview is separate from public production. */
+  previewPublication: "protected-preview" | "closed";
   productOrCollection?: string;
   photographerCredit?: string;
   creditStatus: "unverified" | "recorded";
@@ -42,7 +44,7 @@ export type ImageAsset = {
 };
 
 const usage =
-  "Supplied directly by Luna Fae Leathers for this website project. The maker knows the site is being developed. Permitted in the private local preview only. Public publication, photographer credit, and model permission are unverified.";
+  "Supplied directly by Luna Fae Leathers for this website project. Permitted in local development and on a protected Vercel preview. Public production, photographer credit, and model permission are unverified.";
 
 const release = "A person is pictured. Model permission is unverified.";
 
@@ -63,6 +65,7 @@ function suppliedPhoto(
     suppliedBy: "Luna Fae Leathers",
     approval: "approved-for-private-preview",
     publicPublication: "unverified",
+    previewPublication: "protected-preview",
     creditStatus: "unverified",
     permittedUsage: usage,
     modelRelease: release,
@@ -102,7 +105,7 @@ export const imageAssets: ImageAsset[] = [
   suppliedPhoto(
     "5251",
     "Custom creations on the homepage, and the custom page, when approval allows. Also in the gallery. Not a photograph of the maker at work.",
-    "Close view of a bald person with a beard adjusting the straps of a black leather chest harness.",
+    "A bald person with a beard holds the hanging straps of a black leather chest harness.",
     "Hands adjusting a chest harness",
     "center 48%",
   ),
@@ -136,7 +139,7 @@ export const imageAssets: ImageAsset[] = [
   suppliedPhoto(
     "5256",
     "Gallery.",
-    "Close view of a black leather chest harness with rings, worn over a leopard-print garment.",
+    "Close view of a black leather chest harness and a belt of metal rings, worn with a leopard-print garment.",
     "Chest harness over leopard print",
     "center",
     "detail",
@@ -144,7 +147,7 @@ export const imageAssets: ImageAsset[] = [
   suppliedPhoto(
     "5257",
     "Gallery.",
-    "A person looks down while adjusting a black leather hip harness with metal rings.",
+    "A person looks down while adjusting a black leather harness and a belt of metal rings.",
     "Adjusting a hip harness",
     "center 45%",
   ),
@@ -180,7 +183,7 @@ export const imageAssets: ImageAsset[] = [
   suppliedPhoto(
     "5262",
     "Gallery.",
-    "Close portrait of a person wearing a patterned headwrap, a fine face chain, and a dark leather collar.",
+    "Close portrait of a person in a patterned headwrap and a fine face chain, wearing a dark leather collar, with a pale rose in the foreground.",
     "Portrait with a leather collar",
     "center 55%",
     "accessories",
@@ -290,9 +293,32 @@ export function approvedPublicPath(src: string | undefined): string | undefined 
   return `/images/${asset.publicFilename}`;
 }
 
+type PreviewEnv = {
+  NODE_ENV?: string;
+  VERCEL_ENV?: string;
+  NEXT_PUBLIC_PREVIEW_PHOTOS?: string;
+};
+
+/**
+ * Supplied photographs stay off public production.
+ * Local development and a Vercel preview may render them. A production deployment may not,
+ * even if a preview flag was copied into that environment.
+ */
+export function privatePreviewAllowed(source: PreviewEnv = process.env): boolean {
+  if (source.VERCEL_ENV === "production") {
+    return false;
+  }
+
+  if (source.VERCEL_ENV === "preview" || source.NEXT_PUBLIC_PREVIEW_PHOTOS === "1") {
+    return true;
+  }
+
+  return source.NODE_ENV === "development";
+}
+
 /**
  * Path the current runtime may render.
- * Private-preview photographs resolve only while `NODE_ENV` is development.
+ * Private-preview photographs resolve in local development and on a protected Vercel preview.
  */
 export function displayPath(src: string | undefined): string | undefined {
   if (src && /^\/media\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(src)) {
@@ -309,7 +335,7 @@ export function displayPath(src: string | undefined): string | undefined {
     return `/images/${asset.publicFilename}`;
   }
 
-  if (asset.approval === "approved-for-private-preview" && process.env.NODE_ENV === "development") {
+  if (asset.approval === "approved-for-private-preview" && asset.previewPublication === "protected-preview" && privatePreviewAllowed()) {
     return `/private-preview/${asset.publicFilename}`;
   }
 
@@ -328,7 +354,7 @@ export function approvedPresentation(id: string): { src: string; alt: string; la
     return undefined;
   }
 
-  const src = approvedPublicPath(`/images/${asset.publicFilename}`);
+  const src = displayPath(`/images/${asset.publicFilename}`);
 
   if (!src) {
     return undefined;

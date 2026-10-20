@@ -103,7 +103,7 @@ export function categoryLabel(id: GalleryCategory): string {
 export function galleryFrames(): GalleryFrame[] {
   return galleryItems
     .map(frameFromItem)
-    .filter((frame) => Boolean(frame.src) && frame.usage !== "private-preview");
+    .filter((frame) => Boolean(frame.src));
 }
 
 export function isConceptGallery(): boolean {
