@@ -20,7 +20,7 @@ export function FeaturedCollections() {
             Accessories, masks, harnesses, and fantasy-inspired leatherwork.
           </p>
         </div>
-        <ul className="mt-12 grid gap-12 md:grid-cols-12 md:items-start md:gap-x-6 md:gap-y-14">
+        <ul className="mt-14 grid gap-x-8 gap-y-16 md:grid-cols-12 md:items-start md:gap-y-24">
           {collections.map((collection, index) => {
             const photo = approvedPresentation(photoPlacements.collections[index] ?? "");
 
@@ -37,12 +37,12 @@ export function FeaturedCollections() {
                     aspectClassName={collection.aspectClassName}
                     sizes="(min-width: 768px) 50vw, 100vw"
                   />
-                  <div className="mt-5 flex items-start justify-between gap-4">
+                  <div className="mt-6 flex items-baseline justify-between gap-4">
                     <div>
-                      <h3 className="font-editorial text-3xl text-ivory sm:text-4xl">{collection.title}</h3>
-                      <p className="mt-2 max-w-sm text-sm leading-relaxed text-silver">{collection.note}</p>
+                      <h3 className="font-editorial text-3xl leading-none text-ivory sm:text-4xl">{collection.title}</h3>
+                      <p className="mt-3 max-w-sm text-sm leading-relaxed text-silver">{collection.note}</p>
                     </div>
-                    <span className="eyebrow pt-2">{collection.index}</span>
+                    <span className="eyebrow">{collection.index}</span>
                   </div>
                   <span className="mt-4 block h-px w-10 bg-burgundy transition-[width] group-hover:w-16" aria-hidden="true" />
                 </Link>

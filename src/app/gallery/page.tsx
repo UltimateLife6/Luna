@@ -14,7 +14,7 @@ export default function GalleryPage() {
       <PageIntro
         eyebrow="Portfolio"
         title="The gallery."
-        description={quiet ? "Photographs of the work will be placed here." : "Photographs of the work."}
+        description={quiet ? "Photographs of the work will be placed here." : "Harnesses, collars, and the hardware that finishes a piece."}
       />
       <GalleryExperience />
     </article>

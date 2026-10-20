@@ -7,18 +7,20 @@ export function Hero() {
 
   return (
     <section aria-labelledby="home-hero-heading" className="border-b border-ivory/10">
-      <div className="grid grid-cols-1 lg:min-h-[calc(100svh-7.5rem)] lg:grid-cols-2">
-        <div className="relative order-2 aspect-[4/3] min-w-0 sm:aspect-[16/10] lg:order-1 lg:aspect-auto lg:h-full">
+      <div className="grid grid-cols-1 lg:min-h-[calc(100svh-4.75rem)] lg:grid-cols-2">
+        <div className="relative order-2 aspect-[4/5] min-w-0 sm:aspect-[4/3] lg:order-1 lg:aspect-auto lg:h-full">
           <DemoImage
             fill
             priority
             src={hero?.src}
-            objectPosition={hero?.objectPosition}
+            objectPosition="40% 28%"
+            className="[&_img]:brightness-[0.86] [&_img]:contrast-[1.04]"
             kicker="Photograph"
             label={hero ? "Homepage photograph" : "Photograph coming soon."}
             sizes="(min-width: 1024px) 50vw, 100vw"
             alt={hero?.alt ?? "Luna Fae Leathers."}
           />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-obsidian/55 via-transparent to-obsidian/25 lg:bg-gradient-to-r lg:from-obsidian/10 lg:via-transparent lg:to-obsidian/45" aria-hidden="true" />
         </div>
         <div className="order-1 flex min-w-0 flex-col justify-end px-5 py-14 sm:px-10 sm:py-20 lg:order-2 lg:px-14 lg:py-16 xl:px-16">
           <p className="eyebrow">Luna Fae Leathers</p>

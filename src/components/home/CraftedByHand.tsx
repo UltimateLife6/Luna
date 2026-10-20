@@ -14,14 +14,11 @@ export function CraftedByHand() {
           <h2 id="home-craft-heading" className="mt-4 font-editorial text-4xl leading-[1.05] text-ivory sm:text-6xl">
             Crafted by hand.
           </h2>
-          <p className="mt-6 max-w-md text-base leading-relaxed text-silver sm:text-lg">
-            Each piece is made by hand in vegetable-tanned leather.
-          </p>
-          <dl className="mt-10 border-l border-burgundy">
+          <dl className="mt-12">
             {craftPoints.map((point) => (
-              <div key={point.title} className="border-b border-ivory/10 py-5 pl-6 last:border-b-0">
-                <dt className="font-editorial text-2xl text-ivory sm:text-3xl">{point.title}</dt>
-                <dd className="mt-2 text-sm leading-relaxed text-silver">{point.body}</dd>
+              <div key={point.title} className="border-t border-ivory/10 py-8 first:border-t-0 first:pt-0">
+                <dt className="font-editorial text-3xl text-ivory sm:text-4xl">{point.title}</dt>
+                <dd className="mt-3 max-w-sm text-sm leading-relaxed text-silver">{point.body}</dd>
               </div>
             ))}
           </dl>

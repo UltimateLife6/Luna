@@ -1,26 +1,24 @@
 import { Menu } from "lucide-react";
 import Link from "next/link";
+import { Wordmark } from "@/components/layout/Wordmark";
 import { Container } from "@/components/ui/Container";
 import { primaryNav } from "@/lib/navigation";
 
 export function SiteHeaderFallback() {
   return (
     <header className="border-b border-ivory/10 bg-obsidian">
-      <Container className="flex h-16 items-center justify-between gap-3">
-        <Link href="/" className="block min-w-0 leading-none" aria-label="Luna Fae Leathers, home">
-          <span className="block font-display text-sm tracking-[0.28em] text-ivory">LUNA FAE</span>
-          <span className="mt-1 block font-display text-[0.62rem] tracking-[0.38em] text-silver">LEATHERS</span>
-        </Link>
-        <nav className="hidden items-center gap-x-5 lg:flex" aria-label="Primary">
-          {primaryNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="py-2 font-sans text-xs uppercase tracking-[0.16em] text-silver"
-            >
-              {item.label}
-            </Link>
-          ))}
+      <Container className="flex h-[4.75rem] items-center justify-between gap-4">
+        <Wordmark />
+        <nav className="hidden items-center lg:flex" aria-label="Primary">
+          <ul className="flex items-center gap-x-5 xl:gap-x-7">
+            {primaryNav.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="inline-flex min-h-11 items-center font-sans text-[0.68rem] uppercase tracking-[0.18em] text-silver">
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </nav>
         <span className="inline-flex size-11 items-center justify-center text-ivory lg:hidden" aria-hidden="true">
           <Menu className="size-5" strokeWidth={1.5} />

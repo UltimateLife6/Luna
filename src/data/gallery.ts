@@ -6,7 +6,9 @@ import type { GalleryItem } from "@/types/catalog";
  * A frame is rendered only when `displayPath` allows its ledger status in this runtime.
  * `category` is a visual filter, not a product name.
  */
-export const galleryItems: GalleryItem[] = galleryOrder.map((id) => {
+const galleryAspects = ["aspect-[3/4]", "aspect-[4/5]", "aspect-square", "aspect-[5/4]", "aspect-[4/3]"] as const;
+
+export const galleryItems: GalleryItem[] = galleryOrder.map((id, index) => {
   const asset = assetById(id);
 
   if (!asset?.alt || !asset.publicFilename) {
@@ -20,7 +22,7 @@ export const galleryItems: GalleryItem[] = galleryOrder.map((id) => {
     label: asset.shortLabel,
     category: asset.galleryFilter,
     status: "demo",
-    aspectClassName: "aspect-square",
+    aspectClassName: galleryAspects[index % galleryAspects.length],
     objectPosition: asset.objectPosition,
   };
 });

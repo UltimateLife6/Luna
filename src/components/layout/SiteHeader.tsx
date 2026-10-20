@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import { ExternalAnchor } from "@/components/ui/ExternalAnchor";
+import { Wordmark } from "@/components/layout/Wordmark";
 import { cn } from "@/lib/cn";
 import { cartNav, isActivePath, primaryNav, utilityNav } from "@/lib/navigation";
 import { site } from "@/lib/site";
@@ -100,7 +101,7 @@ export function SiteHeader() {
       <h2 id={titleId} className="sr-only">
         Menu
       </h2>
-      <Container className="flex h-16 items-center justify-between">
+      <Container className="flex h-[4.75rem] items-center justify-between">
         <Wordmark onNavigate={pathname === "/" ? () => closeMenu() : undefined} />
         <button
           type="button"
@@ -148,25 +149,35 @@ export function SiteHeader() {
 
   return (
     <header className="border-b border-ivory/10 bg-obsidian">
-      <Container className="flex h-16 items-center justify-between gap-3">
+      <Container className="flex h-[4.75rem] items-center justify-between gap-4">
         <Wordmark />
-        <nav className="hidden items-center gap-x-5 lg:flex" aria-label="Primary">
-          {[...primaryNav, cartNav].map((item) => {
-            const active = isActivePath(pathname, item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "py-2 font-sans text-xs uppercase tracking-[0.16em]",
-                  active ? "text-ivory" : "text-silver hover:text-ivory",
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="hidden items-center lg:flex" aria-label="Primary">
+          <ul className="flex items-center gap-x-5 xl:gap-x-7">
+            {primaryNav.map((item) => {
+              const active = isActivePath(pathname, item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "inline-flex min-h-11 items-center font-sans text-[0.68rem] uppercase tracking-[0.18em]",
+                      active ? "text-ivory" : "text-silver hover:text-ivory",
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          <Link
+            href={cartNav.href}
+            aria-current={isActivePath(pathname, cartNav.href) ? "page" : undefined}
+            className="ml-5 inline-flex min-h-11 items-center border-l border-ivory/15 pl-5 font-sans text-[0.68rem] uppercase tracking-[0.18em] text-silver hover:text-ivory xl:ml-7 xl:pl-7"
+          >
+            {cartNav.label}
+          </Link>
         </nav>
         <Link
           href={cartNav.href}
@@ -193,11 +204,3 @@ export function SiteHeader() {
   );
 }
 
-function Wordmark({ onNavigate }: { onNavigate?: () => void }) {
-  return (
-    <Link href="/" className="block min-w-0 leading-none" aria-label="Luna Fae Leathers, home" onClick={onNavigate}>
-      <span className="block font-display text-sm tracking-[0.28em] text-ivory">LUNA FAE</span>
-      <span className="mt-1 block font-display text-[0.62rem] tracking-[0.38em] text-silver">LEATHERS</span>
-    </Link>
-  );
-}

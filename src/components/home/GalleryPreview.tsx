@@ -26,11 +26,11 @@ export function GalleryPreview() {
             </h2>
           </div>
           <p className="max-w-sm text-sm leading-relaxed text-silver sm:text-base">
-            {preview.length === 0 ? "Photographs will be placed here." : "Photographs of the work."}
+            {preview.length === 0 ? "Photographs will be placed here." : "Harnesses, collars, and the hardware that finishes a piece."}
           </p>
         </div>
         {preview.length > 0 ? (
-          <ul className="mt-12 grid grid-cols-2 gap-3 md:grid-cols-12 md:gap-5">
+          <ul className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-12 md:grid-rows-2 md:gap-5">
             {preview.map((item) => (
               <li key={item.label} className={item.className}>
                 <DemoImage
@@ -51,10 +51,7 @@ export function GalleryPreview() {
             <p className="mt-4 max-w-xl font-editorial text-4xl leading-tight text-ivory sm:text-5xl">Photographs will be placed here.</p>
           </div>
         )}
-        <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-silver">
-            {preview.length === 0 ? "The gallery is being prepared." : `${preview.length} photographs.`}
-          </p>
+        <div className="mt-10">
           <Button href="/gallery" variant="secondary">
             View the gallery
           </Button>

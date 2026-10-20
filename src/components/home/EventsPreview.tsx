@@ -7,6 +7,10 @@ export function EventsPreview() {
   const past = appearances.filter((appearance) => appearance.status === "past");
   const hasAppearances = upcoming.length > 0 || past.length > 0;
 
+  if (!hasAppearances) {
+    return null;
+  }
+
   return (
     <section aria-labelledby="home-events-heading" className="border-t border-ivory/10 py-16 sm:py-24">
       <Container className="grid gap-10 lg:grid-cols-12 lg:items-end">
@@ -20,27 +24,17 @@ export function EventsPreview() {
           </p>
         </div>
         <div className="bg-oxblood px-6 py-10 sm:px-10 sm:py-14 lg:col-span-8">
-          {hasAppearances ? (
-            <ul className="divide-y divide-ivory/15">
-              {[...upcoming, ...past].slice(0, 3).map((appearance) => (
-                <li key={appearance.id} className="py-5 first:pt-0 last:pb-0">
-                  <p className="font-editorial text-3xl text-ivory">{appearance.name}</p>
-                  <p className="mt-2 text-sm text-ivory/75">
-                    {appearance.dateLabel ?? "Date not supplied"}
-                    {appearance.location ? ` · ${appearance.location}` : ""}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <>
-              <p className="eyebrow text-ivory/70">Upcoming</p>
-              <p className="mt-4 font-editorial text-4xl italic leading-tight text-ivory sm:text-5xl">No dates are listed.</p>
-              <p className="mt-4 max-w-md text-sm leading-relaxed text-ivory/80">
-                Markets, conventions, and collaborations will be posted when a date is confirmed.
-              </p>
-            </>
-          )}
+          <ul className="divide-y divide-ivory/15">
+            {[...upcoming, ...past].slice(0, 3).map((appearance) => (
+              <li key={appearance.id} className="py-5 first:pt-0 last:pb-0">
+                <p className="font-editorial text-3xl text-ivory">{appearance.name}</p>
+                <p className="mt-2 text-sm text-ivory/75">
+                  {appearance.dateLabel ?? "Date not supplied"}
+                  {appearance.location ? ` · ${appearance.location}` : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
           <div className="mt-8">
             <Button href="/events" variant="secondary" className="border-ivory/50 hover:border-ivory">
               All appearances
