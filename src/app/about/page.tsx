@@ -10,6 +10,7 @@ export const metadata = pageMetadata("About");
 export const ensureStatic = "navigation";
 
 export default function AboutPage() {
+  const making = approvedPresentation(photoPlacements.aboutMaking);
   const materials = approvedPresentation(photoPlacements.aboutMaterials);
 
   return (
@@ -30,9 +31,11 @@ export default function AboutPage() {
           </div>
           <div className="lg:col-span-5 lg:col-start-8">
             <DemoImage
+              src={making?.src}
+              objectPosition={making?.objectPosition}
               kicker="Photograph"
-              label="Photograph coming soon."
-              alt="Luna Fae Leathers."
+              label={making ? making.label : "Photograph coming soon."}
+              alt={making?.alt ?? "Luna Fae Leathers."}
               aspectClassName="aspect-[4/5]"
               sizes="(min-width: 1024px) 36vw, 100vw"
             />

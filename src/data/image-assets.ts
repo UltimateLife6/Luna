@@ -117,7 +117,7 @@ export const imageAssets: ImageAsset[] = [
   ),
   suppliedPhoto(
     "5253",
-    "Gallery.",
+    "About page making frame, as a worn harness seen from the back. It is not a picture of production. Also in the gallery.",
     "Back view of a person in a black leather harness with silver buckles and rings.",
     "Harness seen from the back",
   ),
@@ -190,7 +190,7 @@ export const imageAssets: ImageAsset[] = [
   ),
   suppliedPhoto(
     "5263",
-    "Gallery.",
+    "Homepage Crafted by hand. The person is holding a finished harness; this is not a photograph of the maker at work. Also in the gallery.",
     "A person holds the straps of a black leather harness crossed with silver rings and buckles.",
     "Holding a crossed harness",
   ),
@@ -254,15 +254,17 @@ export const photoPlacements = {
   custom: "img-5251",
   customAlternate: "img-5265",
   aboutMaterials: "img-5259",
+  craft: "img-5263",
+  aboutMaking: "img-5253",
 } as const;
 
 export const imageSlots = [
   { id: "hero", placement: "Homepage hero", ratio: "4:5", longEdge: 2000, assetId: photoPlacements.hero },
   { id: "hero-alternate", placement: "Homepage hero alternate", ratio: "4:5", longEdge: 2000, assetId: photoPlacements.heroAlternate },
   { id: "collections", placement: "Homepage collection tiles", ratio: "4:5 or 16:10", longEdge: 1600, assetId: photoPlacements.collections.join(", ") },
-  { id: "craft", placement: "Homepage craftsmanship", ratio: "4:5", longEdge: 1600, assetId: "unassigned" },
+  { id: "craft", placement: "Homepage craftsmanship", ratio: "4:5", longEdge: 1600, assetId: photoPlacements.craft },
   { id: "gallery-preview", placement: "Homepage gallery preview", ratio: "4:3, 3:4, or 4:5", longEdge: 1600, assetId: photoPlacements.galleryPreview.join(", ") },
-  { id: "about-making", placement: "About, making frame", ratio: "4:5", longEdge: 1600, assetId: "unassigned" },
+  { id: "about-making", placement: "About, making frame", ratio: "4:5", longEdge: 1600, assetId: photoPlacements.aboutMaking },
   { id: "about-materials", placement: "About, materials frame", ratio: "4:3", longEdge: 1600, assetId: photoPlacements.aboutMaterials },
   { id: "gallery", placement: "Gallery", ratio: "1:1 source", longEdge: 2000, assetId: "all private-preview photographs" },
   { id: "product", placement: "Verified product pages only", ratio: "4:5", longEdge: 1600, assetId: "unassigned" },

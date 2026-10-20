@@ -1,8 +1,11 @@
+import { approvedPresentation, photoPlacements } from "@/data/image-assets";
 import { Container } from "@/components/ui/Container";
 import { DemoImage } from "@/components/ui/DemoImage";
 import { craftPoints } from "@/lib/home";
 
 export function CraftedByHand() {
+  const craft = approvedPresentation(photoPlacements.craft);
+
   return (
     <section aria-labelledby="home-craft-heading" className="border-t border-ivory/10 py-16 sm:py-24">
       <Container className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
@@ -25,9 +28,11 @@ export function CraftedByHand() {
         </div>
         <div className="lg:col-span-6 lg:col-start-7">
           <DemoImage
+            src={craft?.src}
+            objectPosition={craft?.objectPosition}
             kicker="Photograph"
-            label="Photograph coming soon."
-            alt="Luna Fae Leathers."
+            label={craft ? craft.label : "Photograph coming soon."}
+            alt={craft?.alt ?? "Luna Fae Leathers."}
             aspectClassName="aspect-[4/5] sm:aspect-[5/6]"
             sizes="(min-width: 1024px) 42vw, 100vw"
           />
